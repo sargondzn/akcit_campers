@@ -15,7 +15,7 @@ Cada pessoa é **dona de um pedaço do sistema**, com pastas próprias no códig
 | | **Pessoa A — Plataforma** | **Pessoa B — Agentes** | **Pessoa C — Dados e avaliação** |
 |---|---|---|---|
 | **Frentes em `specs/`** | `frontend`, `backend` | `agentes` | `dados`, `harness` |
-| **É dona de** | Interface da cuidadora, API, contas, banco, arquivos, agendador de lembretes, geração do PDF, deploy | Orquestrador, Leitor, Diário + Escalonador, Auditor, cliente do LLM, voz (STT/TTS) | Normalizador, Farmacovigilante (interações, duplicidade, CBMPI, bulas), regras de gravidade e sinais de alarme, harness de avaliação |
+| **É dona de** | Interface da cuidadora, API, contas, banco, arquivos, agendador de lembretes, geração do PDF, deploy | Orquestrador, Leitor, Diário + Escalonador, Auditor, cliente do LLM, voz (STT/TTS) | Normalizador, Farmacovigilante (no regional: mesmo princípio ativo + tabela curada), regras de gravidade e sinais de alarme, harness de avaliação |
 | **Perfil ideal** | JS/TS + React, um pouco de Python | Python + LLM | Python + dados (planilhas, ETL); gosto por curadoria |
 | **Entrega para os outros** | Schema do banco e funções de acesso (para B); endpoint que chama o agente | `processar_mensagem` (para A); conteúdo do resumo (para A); Leitor e Auditor chamáveis (para C) | `normalizar`, `checar_lista`, `avaliar_gravidade` (para B); relatório de métricas (para o pitch) |
 | **Trabalha com stub de** | Agente (respostas falsas) | Funções de dados (respostas falsas); banco em memória | Nenhum: suas funções são puras e testáveis sozinhas |

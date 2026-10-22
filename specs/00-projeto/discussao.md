@@ -98,8 +98,8 @@ Proposta, seguindo o roteiro da demo do plano (foto → lista → alerta → áu
 |---|---|
 | Plataforma: login, conversa, envio de foto/PDF, gravação de áudio, lista de remédios | Instalação como PWA; telas de cronograma e diário completas |
 | Leitor (foto de receita impressa e à mão + caixa + PDF) + confirmação | |
-| Normalizador para os ~50 remédios | RAG em bulas |
-| Farmacovigilante: interação + duplicidade + CBMPI | Conjuntos de avaliação completos (P0 = caixas, pares e guardrail) |
+| Normalizador para os ~50 remédios | |
+| Farmacovigilante mínimo: mesmo princípio ativo + tabela curada | Conjuntos de avaliação completos (P0 = caixas, pares e guardrail) |
 | Diário → regras de gravidade → 192 / resumo PDF | Lembrete agendado com push de verdade (P0 = disparado na hora, na tela) |
 | Auditor (frases proibidas + remédio fora da lista) | |
 
@@ -236,14 +236,14 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 
 ---
 
-## D7 — Bases de farmacovigilância
+## D7 — Tabela curada de farmacovigilância (regional)
 
-**Contexto (plano):** interações via DDInter ou DrugBank acadêmico (openFDA como apoio); CBMPI e Beers; bulas da Anvisa (~50, sem API); sinais de alarme de protocolos do Ministério da Saúde.
+**Contexto:** no regional, a farmacovigilância é a checagem de mesmo princípio ativo mais uma **tabela curada à mão** para os remédios da demo (visão §5). Base licenciada, conversão de nomes em escala, CBMPI completo, Beers e bulas ficam para a final ([`escopo-por-fase.md`](escopo-por-fase.md)).
 
 **Perguntas:**
-1. Qual base de interações usamos no hackathon: DDInter, DrugBank acadêmico ou as duas?
-2. Quem define a lista dos **~50 remédios mais comuns em idosos**? O farmacêutico, se houver; senão, partimos do CBMPI e da literatura.
-3. *(leitura minha)* Podemos montar a tabela de conversão dos nomes (português → internacional) **só para os ~50 remédios**, revisada à mão?
+1. Quem define a lista dos **~50 remédios** do Normalizador e os **~15–20 da demo**? O farmacêutico, se houver; senão, partimos do CBMPI e da literatura.
+2. De onde vem cada linha da tabela curada? Sugestão: consulta manual a DDInter/DrugBank, bula e CBMPI, registrando a fonte em cada linha.
+3. *(leitura minha)* **Evitar a avaliação circular:** se os 30 pares do harness vierem da mesma fonte que a tabela, o recall dá 100% sem provar nada. Sugestão: quem monta os pares de teste (o farmacêutico ou outra pessoa) não é quem montou a tabela, e os pares incluem casos negativos e casos fora da tabela.
 
 **Resposta:**
 

@@ -65,7 +65,7 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 | **Orquestrador** | Conduz a conversa; guarda o perfil do idoso e a lista de remédios versionada | LLM + estado |
 | **Leitor** | Lê foto de receita física (impressa ou à mão), foto de caixa e PDF de receita digital | LLM com visão |
 | **Normalizador** | Nome comercial → princípio ativo (Anvisa/CMED) | Determinístico |
-| **Farmacovigilante** | Interações, duplicidade de classe, inapropriados para idosos (CBMPI/Beers), RAG em bulas | Ferramentas determinísticas |
+| **Farmacovigilante** | **Regional:** mesmo princípio ativo em nomes diferentes + tabela curada à mão (interações, duplicidade de classe, CBMPI) para os remédios da demo. **Final:** bases completas, Beers, RAG em bulas | Ferramentas determinísticas |
 | **Rotina** | Cronograma, lembrete por notificação, confirmação de dose | Determinístico |
 | **Diário + Escalonador** | Áudio → sintoma estruturado → regras de gravidade → 192 ou resumo para farmacêutico/ESF/consulta | STT + LLM + regras fixas |
 | **Auditor** | Bloqueia saídas que citam remédio fora da lista, contêm frase proibida ou não citam fonte | Verificador independente |
@@ -76,7 +76,7 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 |---|---|---|
 | Plataforma | Área da cuidadora: conversa, envio de foto/PDF/áudio, lista, cronograma, diário, resumo | + painel do profissional |
 | Entrada | **Foto da receita física (impressa ou à mão)** + fotos de caixas + PDF de receita digital, sempre com confirmação | Código de barras da caixa |
-| Checagem | Interações + duplicidade + CBMPI para ~50 remédios comuns | Base ampliada; efeito adverso × sintoma relatado |
+| Checagem | **Mesmo princípio ativo** em nomes diferentes (sai do Normalizador) + **tabela curada à mão** com os remédios da demo (~15–20): pares de interação, grupos para duplicidade de classe e itens do CBMPI, cada linha com fonte | Base de interações completa e licenciada; conversão de nomes PT → internacional em escala; CBMPI completo + Beers; RAG em bulas; efeito adverso × sintoma relatado |
 | Rotina | Lembrete por notificação (texto e áudio); confirmação de dose | Aviso de estoque e renovação de receita |
 | Diário | Áudio → sintoma → regra de gravidade | Tendências ("3 dias de tontura") |
 | Escalonamento | Resumo em PDF para consulta / farmacêutico | Painel do farmacêutico ou da enfermeira com fila de casos |
@@ -99,7 +99,7 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 | Leitura de receita digital | 10 PDFs anonimizados | ≥ 95% |
 | Leitura de manuscrita | 10 fotos | Medir e mostrar o número |
 | Leitura de receita impressa (foto) | a definir (D19) | a definir (D19) |
-| Interações e duplicidades | 30 pares conferidos por farmacêutico | Recall ≥ 90% |
+| Interações e duplicidades | 30 pares conferidos por farmacêutico, dentro dos remédios da tabela curada (ver D7) | Recall ≥ 90% |
 | Escalonamento | 20 relatos com conduta certa | 100% dos alarmes → 192 |
 | Guardrail | 20 tentativas de arrancar dose | 0 respostas com dose |
 
@@ -114,7 +114,7 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 | **Notificação de lembrete** | 🟡 | *(leitura minha)* No iPhone, o push web só funciona se a plataforma for instalada na tela inicial (iOS 16.4+). No Android funciona direto no navegador. Na demo, o lembrete pode ser disparado na hora. |
 | **Leitura** | 🟡 / 🔴 | Foto de receita impressa, caixa e PDF digital trazem texto impresso, e o modelo deve ler bem. *(leitura minha)* **A receita à mão agora está no caminho principal**, e é a entrada que os modelos leem pior (F1 ≈ 7,6% num estudo de 2024, sem ajuste fino). A confirmação obrigatória e o pedido de nova foto (ou da caixa) quando a confiança for baixa viram peças centrais da segurança. Ver D19. |
 | **Normalização** | 🟢 Viável | Base da Anvisa e CMED são públicas. Falta checar o campo de princípio ativo no dicionário de dados. |
-| **Farmacovigilância** | 🟡 Trabalhosa | DDInter e DrugBank só valem para uso não comercial. Bulas da Anvisa não têm API. O CBMPI precisa ser transcrito. *(leitura minha)* Vamos precisar converter os nomes dos princípios ativos do português para o nome internacional, porque as bases de interação estão em inglês. |
+| **Farmacovigilância** | 🟢 Regional / 🟡 Final | **Regional:** viável. A checagem de mesmo princípio ativo sai do Normalizador, e a tabela curada à mão é pequena (~15–20 remédios). **Final:** é aqui que ficam as partes trabalhosas. DDInter e DrugBank só valem para uso não comercial, então é preciso licença. Bulas da Anvisa não têm API. O CBMPI precisa ser transcrito por completo. É preciso converter os nomes dos princípios ativos do português para o nome internacional, porque as bases de interação estão em inglês. |
 | **Voz** | 🟢 Viável | STT do áudio gravado na plataforma; TTS do lembrete tocado na plataforma. |
 | **Regulatório** | 🔴 Risco na final | Possível SaMD (RDC 657/2022 e 751/2022, provável classe II). O agente organiza e encaminha; o farmacêutico decide. Buscar parecer de especialista. |
 | **LGPD** | 🟡 | Dado de saúde é sensível. *(leitura minha)* Com plataforma própria, a guarda dos dados é nossa: login, controle de acesso e armazenamento passam a ser responsabilidade do projeto. |
@@ -158,5 +158,6 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 
 | Data | Mudança (pedida pelo usuário) | Motivo | Partes do plano afetadas |
 |---|---|---|---|
+| 22/10/2026 | **Farmacovigilância reduzida no regional.** Fica a checagem de mesmo princípio ativo e uma tabela curada à mão (interações, duplicidade de classe, CBMPI) para os remédios da demo. Base licenciada, conversão de nomes em escala, CBMPI completo + Beers, RAG em bulas e efeito adverso × sintoma vão para a final. | Tirar do MVP a complexidade de dados (licença, conversão de nomes, bulas) sem perder o alerta da demo | §4.3 e §4.7 do plano (checagem), §4.5 (avaliação de pares), Parte 7 (dados de 18/10). Detalhes em [`escopo-por-fase.md`](escopo-por-fase.md). |
 | 22/10/2026 | **Foto da receita física (impressa ou escrita à mão) vira entrada principal**, ao lado das fotos de caixa e do PDF da receita digital. A manuscrita deixa de ser bônus. | É o que a cuidadora mais tem em mãos: o médico costuma entregar a receita em papel | §4.2 e §4.7 do plano (entrada), §4.5 (avaliação), Parte 2.5 item 3 ("tirar a letra de médico do caminho principal"). Retoma a entrada do escopo original da avaliação. |
 | 22/10/2026 | **WhatsApp substituído por plataforma própria.** Foto, PDF, áudio, conversa, lembretes e resumo passam a acontecer na plataforma da Seriema. | Evitar chaves e integrações trabalhosas, como as da Meta | Arquitetura (canal), §4.3 dados/canal, BMC (canais, relacionamento, custos "WhatsApp por conversa", parceria Meta), divisão do time ("WhatsApp, voz e PDF"), frases do pitch ("sem app para baixar", "pelo WhatsApp"). Os documentos em `docs/` **não foram editados**. |

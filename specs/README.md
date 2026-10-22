@@ -31,6 +31,7 @@ specs/
 ├── 00-projeto/             ← visão geral e decisões transversais (stack, frentes, prazos)
 │   ├── visao.md
 │   ├── divisao.md      ← quem faz o quê (3 pessoas) e contratos entre as partes
+│   ├── escopo-por-fase.md ← o que entra no regional e o que fica para a final
 │   ├── discussao.md
 │   ├── spec.md
 │   └── checklist.md
@@ -49,6 +50,7 @@ specs/
 | [`00-projeto`](00-projeto/) | Visão, stack, frentes, prazos | 🟡 aguardando respostas | ⚪ não iniciada | 🟡 em andamento |
 
 Visão resumida do projeto: [`00-projeto/visao.md`](00-projeto/visao.md).
+O que entra no regional e o que fica para a final: [`00-projeto/escopo-por-fase.md`](00-projeto/escopo-por-fase.md).
 Divisão do time e tarefas por pessoa: [`00-projeto/divisao.md`](00-projeto/divisao.md) e [`00-projeto/checklist.md`](00-projeto/checklist.md).
 
 Legenda: ⚪ não iniciada · 🟡 em andamento · 🟢 aprovada/concluída

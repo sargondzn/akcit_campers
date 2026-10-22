@@ -18,7 +18,9 @@
 - [ ] Criar as pastas das frentes (D10), cada uma com `discussao.md`, `spec.md` e `checklist.md`
 - [ ] Resolver D13 (destino da pasta `docs/` e link quebrado no plano)
 
-## Fase 1 — Construção em paralelo (proposta)
+## Fase 1 — Regional: construção em paralelo (proposta)
+
+> Este checklist cobre só o **regional**. O que fica para a final está em [`escopo-por-fase.md`](escopo-por-fase.md).
 
 ### Pessoa A — Plataforma
 
@@ -35,7 +37,6 @@
 - [ ] **A · P0** — Deploy com HTTPS para a demo
 - [ ] **A · P1** — PWA instalável + notificação push com agendamento
 - [ ] **A · P1** — Telas completas de cronograma e diário
-- [ ] **A · Final** — Painel do profissional
 
 ### Pessoa B — Agentes
 
@@ -49,20 +50,17 @@
 - [ ] **B · P0** — Diário: transcrição → sintoma estruturado (com perguntas de acompanhamento)
 - [ ] **B · P0** — Escalonador: aplica `avaliar_gravidade` → 192 ou `Resumo` (C5)
 - [ ] **B · P0** — Auditor: frases proibidas, remédio fora da lista, fonte citada
-- [ ] **B · Final** — Tendências no diário ("3 dias de tontura")
 
 ### Pessoa C — Dados e avaliação
 
 - [ ] **C · P0** — Definir a lista dos ~50 remédios mais comuns em idosos
 - [ ] **C · P0** — ETL Anvisa/CMED → `normalizar` (C2)
-- [ ] **C · P0** — Tabela de conversão de nomes PT → internacional para os ~50
-- [ ] **C · P0** — Base de interações filtrada para os ~50 (DDInter/DrugBank)
-- [ ] **C · P0** — Duplicidade de classe e CBMPI transcrito → `checar_lista` (C3)
+- [ ] **C · P0** — Checagem de mesmo princípio ativo em nomes diferentes (a partir do `normalizar`)
+- [ ] **C · P0** — Tabela curada à mão para os ~15–20 remédios da demo: pares de interação, grupos de classe e itens do CBMPI, com fonte em cada linha → `checar_lista` (C3)
 - [ ] **C · P0** — Sinais de alarme e regras de gravidade → `avaliar_gravidade` (C4)
 - [ ] **C · P0** — Harness: executor + relatório de métricas
 - [ ] **C · P0** — Conjuntos P0: 50 fotos de caixas (rótulos), 30 pares, 20 tentativas de guardrail
 - [ ] **C · P0** — Conjuntos de receitas físicas: fotos impressas e manuscritas (quantidade e metas em D19)
-- [ ] **C · P1** — RAG em bulas (~50)
 - [ ] **C · P1** — Conjuntos restantes: 10 PDFs, 20 relatos
 
 ### Todos
@@ -74,13 +72,10 @@
 - [ ] **Todos · P0** — Ensaiar o pitch
 - [ ] **(dono em aberto)** — Entrevistas, BMC, pitch, relatórios quinzenais
 
-## Pendências que já constam nas referências
+## Pendências do regional que já constam nas referências
 
-- [ ] Checar a licença comercial do DDInter (e o uso acadêmico do DrugBank)
 - [ ] Checar o campo de princípio ativo no dicionário de dados da Anvisa
 - [ ] Entrevistas: 8–10 cuidadoras, 2 farmacêuticos, 1–2 enfermeiras de ESF; checar o critério de giro
 - [ ] Checar disponibilidade do nome (INPI classes 9 e 44, registro.br, Instagram, lojas)
-- [ ] Levantar o custo médio de internação de idoso na saúde suplementar (unit economics)
-- [ ] Levantar quanto das internações de idosos vem de erro de medicação em casa
-- [ ] Parecer sobre o enquadramento na RDC 657/2022 e 751/2022
-- [ ] Preparar a resposta para a banca sobre o pagador (operadora/farmácia)
+
+As pendências de licença, unit economics, regulatório e pagador foram para a final ([`escopo-por-fase.md`](escopo-por-fase.md) §3).
