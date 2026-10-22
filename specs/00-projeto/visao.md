@@ -15,7 +15,7 @@
 
 A **Seriema** (nome provisório) é uma **plataforma própria** em que a **cuidadora familiar** de um idoso que toma muitos remédios conversa com um agente de IA.
 
-Na plataforma, a cuidadora **fotografa as caixas de remédio e envia o PDF da receita digital**. A foto da receita escrita à mão também é aceita, mas é o caminho secundário. O agente **monta uma lista única** com os remédios de vários médicos e pede que ela **confirme**. Depois disso, ele:
+Na plataforma, a cuidadora **fotografa a receita física** que recebeu do médico, impressa ou escrita à mão. Esse deve ser o caso mais comum. Ela também pode **fotografar as caixas de remédio** e **enviar o PDF da receita digital**. O agente **monta uma lista única** com os remédios de vários médicos e pede que ela **confirme**. Depois disso, ele:
 - **aponta interações, duplicidades e remédios inapropriados para idosos**, sempre mandando levar ao farmacêutico ou ao médico;
 - **lembra as doses por notificação, com texto e áudio**;
 - **registra os sintomas que ela relata por áudio gravado na própria plataforma**;
@@ -43,7 +43,7 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 
 ```
         Plataforma Seriema (web/app — formato em D1)
-        conversa com o agente · câmera/upload de foto e PDF · gravação de áudio · notificações
+        conversa com o agente · foto da receita/caixa e upload de PDF · gravação de áudio · notificações
                           │
                        [API]  ← autenticação, banco, arquivos
                           │
@@ -60,10 +60,10 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 
 | Peça | O que faz | Tipo |
 |---|---|---|
-| **Plataforma** | Interface da cuidadora: conversa, envio de foto/PDF, gravação de áudio, lista de remédios, cronograma, diário, resumo | Frontend próprio |
+| **Plataforma** | Interface da cuidadora: conversa, foto da receita ou da caixa, envio de PDF, gravação de áudio, lista de remédios, cronograma, diário, resumo | Frontend próprio |
 | **API** | Contas, sessões, arquivos, banco; expõe o agente para a plataforma | Backend próprio |
 | **Orquestrador** | Conduz a conversa; guarda o perfil do idoso e a lista de remédios versionada | LLM + estado |
-| **Leitor** | Lê caixa, PDF de receita digital e receita à mão | LLM com visão |
+| **Leitor** | Lê foto de receita física (impressa ou à mão), foto de caixa e PDF de receita digital | LLM com visão |
 | **Normalizador** | Nome comercial → princípio ativo (Anvisa/CMED) | Determinístico |
 | **Farmacovigilante** | Interações, duplicidade de classe, inapropriados para idosos (CBMPI/Beers), RAG em bulas | Ferramentas determinísticas |
 | **Rotina** | Cronograma, lembrete por notificação, confirmação de dose | Determinístico |
@@ -75,7 +75,7 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 | | **Regional** (24/10 ou 31/10) | **Final** (28/11) |
 |---|---|---|
 | Plataforma | Área da cuidadora: conversa, envio de foto/PDF/áudio, lista, cronograma, diário, resumo | + painel do profissional |
-| Entrada | Fotos de caixas + PDF de receita digital (manuscrita como bônus) | Manuscrita com fluxo de confirmação; código de barras |
+| Entrada | **Foto da receita física (impressa ou à mão)** + fotos de caixas + PDF de receita digital, sempre com confirmação | Código de barras da caixa |
 | Checagem | Interações + duplicidade + CBMPI para ~50 remédios comuns | Base ampliada; efeito adverso × sintoma relatado |
 | Rotina | Lembrete por notificação (texto e áudio); confirmação de dose | Aviso de estoque e renovação de receita |
 | Diário | Áudio → sintoma → regra de gravidade | Tendências ("3 dias de tontura") |
@@ -98,6 +98,7 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 | Leitura de caixas | 50 fotos reais | ≥ 95% (princípio ativo + concentração) |
 | Leitura de receita digital | 10 PDFs anonimizados | ≥ 95% |
 | Leitura de manuscrita | 10 fotos | Medir e mostrar o número |
+| Leitura de receita impressa (foto) | a definir (D19) | a definir (D19) |
 | Interações e duplicidades | 30 pares conferidos por farmacêutico | Recall ≥ 90% |
 | Escalonamento | 20 relatos com conduta certa | 100% dos alarmes → 192 |
 | Guardrail | 20 tentativas de arrancar dose | 0 respostas com dose |
@@ -111,7 +112,7 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 | **Prazo** | 🔴 **Crítico** | *(leitura minha)* O repositório ainda não tem código. Na trilha **Goiânia (24/10)** sobram cerca de 2 dias; na **Online (31/10)**, cerca de 9. A plataforma própria acrescenta uma frente de frontend ao MVP. Ver D11 e D16. |
 | **Plataforma própria** | 🟢 Viável | *(leitura minha)* Sem cadastro na Meta, sem templates e sem número de teste. Navegadores modernos já fazem tudo de que precisamos: câmera e upload de arquivo, gravação de áudio e notificações push. O Web Push usa chaves que nós mesmos geramos, sem conta em terceiros. **A chave do LLM continua necessária** (D3). |
 | **Notificação de lembrete** | 🟡 | *(leitura minha)* No iPhone, o push web só funciona se a plataforma for instalada na tela inicial (iOS 16.4+). No Android funciona direto no navegador. Na demo, o lembrete pode ser disparado na hora. |
-| **Leitura** | 🟢 / 🟡 | Caixa e PDF digital são texto impresso. A manuscrita continua ruim nos modelos (F1 ≈ 7,6% num estudo de 2024). Ela vira bônus, com número medido. |
+| **Leitura** | 🟡 / 🔴 | Foto de receita impressa, caixa e PDF digital trazem texto impresso, e o modelo deve ler bem. *(leitura minha)* **A receita à mão agora está no caminho principal**, e é a entrada que os modelos leem pior (F1 ≈ 7,6% num estudo de 2024, sem ajuste fino). A confirmação obrigatória e o pedido de nova foto (ou da caixa) quando a confiança for baixa viram peças centrais da segurança. Ver D19. |
 | **Normalização** | 🟢 Viável | Base da Anvisa e CMED são públicas. Falta checar o campo de princípio ativo no dicionário de dados. |
 | **Farmacovigilância** | 🟡 Trabalhosa | DDInter e DrugBank só valem para uso não comercial. Bulas da Anvisa não têm API. O CBMPI precisa ser transcrito. *(leitura minha)* Vamos precisar converter os nomes dos princípios ativos do português para o nome internacional, porque as bases de interação estão em inglês. |
 | **Voz** | 🟢 Viável | STT do áudio gravado na plataforma; TTS do lembrete tocado na plataforma. |
@@ -157,4 +158,5 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 
 | Data | Mudança (pedida pelo usuário) | Motivo | Partes do plano afetadas |
 |---|---|---|---|
+| 22/10/2026 | **Foto da receita física (impressa ou escrita à mão) vira entrada principal**, ao lado das fotos de caixa e do PDF da receita digital. A manuscrita deixa de ser bônus. | É o que a cuidadora mais tem em mãos: o médico costuma entregar a receita em papel | §4.2 e §4.7 do plano (entrada), §4.5 (avaliação), Parte 2.5 item 3 ("tirar a letra de médico do caminho principal"). Retoma a entrada do escopo original da avaliação. |
 | 22/10/2026 | **WhatsApp substituído por plataforma própria.** Foto, PDF, áudio, conversa, lembretes e resumo passam a acontecer na plataforma da Seriema. | Evitar chaves e integrações trabalhosas, como as da Meta | Arquitetura (canal), §4.3 dados/canal, BMC (canais, relacionamento, custos "WhatsApp por conversa", parceria Meta), divisão do time ("WhatsApp, voz e PDF"), frases do pitch ("sem app para baixar", "pelo WhatsApp"). Os documentos em `docs/` **não foram editados**. |

@@ -28,7 +28,7 @@
 
 | Tema | `f3_cuidador_medicacao.md` (avaliação) | `f3_plano_startup_v1.md` (plano) |
 |---|---|---|
-| Entrada principal | Foto da receita | Fotos de caixas + PDF de receita digital; manuscrita como bônus |
+| ~~Entrada principal~~ | ~~Foto da receita~~ | ~~Fotos de caixas + PDF; manuscrita como bônus~~ — **resolvido** pela mudança de 22/10 (visão §5): foto da receita física + caixas + PDF |
 | Componentes | Leitor, Normalizador, Checador, Diário, Escalonador | + Orquestrador, Farmacovigilante (duplicidade, CBMPI, bulas), Rotina, **Auditor** |
 | Destino do escalonamento | Enfermeira da ESF | Farmacêutico / ESF / consulta, via **resumo em PDF** |
 | Sinal de alarme | Não mencionado | Regra fixa → "ligue 192" |
@@ -97,7 +97,7 @@ Proposta, seguindo o roteiro da demo do plano (foto → lista → alerta → áu
 | P0 | P1 |
 |---|---|
 | Plataforma: login, conversa, envio de foto/PDF, gravação de áudio, lista de remédios | Instalação como PWA; telas de cronograma e diário completas |
-| Leitor (caixa + PDF) + confirmação | Manuscrita |
+| Leitor (foto de receita impressa e à mão + caixa + PDF) + confirmação | |
 | Normalizador para os ~50 remédios | RAG em bulas |
 | Farmacovigilante: interação + duplicidade + CBMPI | Conjuntos de avaliação completos (P0 = caixas, pares e guardrail) |
 | Diário → regras de gravidade → 192 / resumo PDF | Lembrete agendado com push de verdade (P0 = disparado na hora, na tela) |
@@ -113,13 +113,31 @@ Também há uma divergência interna no plano: o **aviso de estoque** aparece na
 
 ---
 
-## D12 — Equipe
+## D19 — Foto da receita física como entrada principal
 
-**Contexto:** o plano sugeria 4 papéis. Com a plataforma própria, eu os ajustaria para: (1) agentes e LLM, (2) dados e farmacovigilância, (3) **plataforma (frontend + API)**, voz e PDF, (4) entrevistas, BMC e pitch.
+**Contexto:** a foto da receita física, impressa ou à mão, passou a ser a entrada principal (visão §5). Com isso, a receita à mão sai do papel de bônus e entra no caminho principal. É a entrada que os modelos leem pior.
 
 **Perguntas:**
-1. Quem é quem, e com que experiência (Python, JS/TS, React, infra)?
-2. Idioma do código e dos comentários: português ou inglês?
+1. **Avaliação:** adicionamos um conjunto de **fotos de receitas impressas** (sugestão: 10, meta ≥ 95%, igual ao PDF)? E as **manuscritas** sobem para P0, com mais exemplos (sugestão: 20) e meta "medir e mostrar"?
+2. **Quando a confiança da leitura for baixa**, o que o agente faz? Sugestões, combináveis: (a) pede outra foto; (b) pede a foto da caixa daquele remédio para confirmar; (c) pede que a cuidadora digite ou fale o nome; (d) marca o item como "não confirmado", e ele não entra no cronograma.
+3. **Itens ilegíveis:** se nada resolver, o item fica fora da lista com o aviso "confirme com o farmacêutico"?
+4. **Fonte das receitas:** dá para conseguir receitas reais (anonimizadas) das famílias da equipe e dos entrevistados até a entrega?
+
+**Recomendação:** 1 — sim, para as duas. 2 — (a), depois (b) ou (c), e (d) até que a cuidadora confirme. 3 — sim.
+
+**Resposta:**
+
+---
+
+## D12 — Equipe (3 pessoas)
+
+**Contexto:** proposta de divisão em [`divisao.md`](divisao.md): **A — Plataforma** (frontend + API), **B — Agentes** (LLM, voz), **C — Dados e avaliação** (farmacovigilância + harness). O plano sugeria 4 papéis; o quarto (entrevistas, BMC, pitch) ficou sem dono.
+
+**Perguntas:**
+1. Quem é A, B e C? Qual a experiência de cada um (Python, JS/TS, React, infra)?
+2. Concorda com a divisão e com os contratos C1–C7?
+3. Quem cuida do negócio (entrevistas, BMC, pitch, relatórios)? Opções: (a) uma pessoa como dona, provavelmente C, cuja frente fica mais leve depois que os dados estão prontos; (b) dividido por tema (entrevistas: C; BMC: B; pitch: A).
+4. Idioma do código e dos comentários: português ou inglês?
 
 **Resposta:**
 
@@ -259,14 +277,14 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 
 ## D10 — Frentes (uma pasta cada em `specs/`)
 
-| Frente | Conteúdo | Quando |
-|---|---|---|
-| `backend` | API, contas, banco, arquivos, Rotina (agendador), voz, geração de PDF | Regional |
-| `agentes` | Orquestrador, Leitor, Diário/Escalonador, Auditor; cliente do LLM | Regional |
-| `dados` | Normalizador (Anvisa/CMED), Farmacovigilante (interações, duplicidade, CBMPI, bulas), sinais de alarme | Regional |
-| `frontend` | Plataforma da cuidadora; na final, painel do profissional | Regional + final |
-| `harness` | Os 6 conjuntos de avaliação e o relatório de métricas | Regional |
-| `negocio` *(opcional)* | Entrevistas, BMC, pitch, relatórios quinzenais | Contínuo |
+| Frente | Conteúdo | Dono | Quando |
+|---|---|---|---|
+| `frontend` | Plataforma da cuidadora; na final, painel do profissional | A | Regional + final |
+| `backend` | API, contas, banco, arquivos, agendador de lembretes, geração de PDF | A | Regional |
+| `agentes` | Orquestrador, Leitor, Diário/Escalonador, Auditor; cliente do LLM; voz | B | Regional |
+| `dados` | Normalizador (Anvisa/CMED), Farmacovigilante (interações, duplicidade, CBMPI, bulas), sinais de alarme | C | Regional |
+| `harness` | Os 6 conjuntos de avaliação e o relatório de métricas | C | Regional |
+| `negocio` *(opcional)* | Entrevistas, BMC, pitch, relatórios quinzenais | em aberto (D12) | Contínuo |
 
 **Perguntas:**
 1. Concorda com as frentes e os nomes? (`agentes` e `dados` poderiam ficar dentro de `backend`.)
