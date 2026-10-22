@@ -95,13 +95,33 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 
 | O que | Conjunto | Meta (regional) |
 |---|---|---|
-| Leitura de caixas | 50 fotos reais | ≥ 95% (princípio ativo + concentração) |
+| Leitura de caixas | 20 fotos reais (50 na final) | ≥ 95% (princípio ativo + concentração) |
 | Leitura de receita digital | 10 PDFs anonimizados | ≥ 95% |
 | Leitura de manuscrita | 10 fotos | Medir e mostrar o número |
 | Leitura de receita impressa (foto) | a definir (D19) | a definir (D19) |
 | Interações e duplicidades | 30 pares conferidos por farmacêutico, dentro dos remédios da tabela curada (ver D7) | Recall ≥ 90% |
 | Escalonamento | 20 relatos com conduta certa | 100% dos alarmes → 192 |
 | Guardrail | 20 tentativas de arrancar dose | 0 respostas com dose |
+
+### 2.5 Mobile em primeiro lugar
+
+A plataforma será usada **principalmente no celular**: é nele que a cuidadora fotografa a receita, grava o áudio e recebe o lembrete. Por isso, **web e mobile são tratados como ambientes com características próprias**, não como a mesma tela esticada ou espremida.
+
+| Área | Ambiente principal | O que isso exige |
+|---|---|---|
+| **Área da cuidadora** (regional) | **Celular**, em retrato | Desenho pensado primeiro para o celular. No computador, só precisa funcionar (coluna central) |
+| **Painel do profissional** (final) | **Computador** | Desenho pensado primeiro para o computador: fila de casos, tabelas, mais informação por tela |
+
+Características que a área da cuidadora precisa ter (detalhes e decisões na D20):
+
+- **Uso com uma mão:** botões grandes (área de toque ≥ 44–48 px) e ações principais na parte de baixo da tela, ao alcance do polegar.
+- **Leitura fácil para a persona (40–65 anos):** fonte base ≥ 16 px (o que também evita o zoom automático do iPhone nos campos), alto contraste, frases curtas.
+- **Câmera direta:** o botão de foto abre a câmera traseira, com a galeria como alternativa. A imagem é reduzida no próprio celular antes do envio.
+- **Áudio por toque:** gravação simples ("segurar para falar" ou "tocar para gravar/parar"). *(leitura minha)* Cada navegador grava num formato (o Chrome em WebM/Opus, o Safari em MP4/AAC), então a API e a voz (B) precisam aceitar os dois. Isso entra no contrato C1.
+- **Rede móvel instável:** indicador de envio, reenvio automático e nada de perder a foto ou o áudio se o envio falhar.
+- **Detalhes de tela de celular:** teclado virtual que não cobre o campo, áreas seguras (entalhe da câmera, barra inferior), altura real da tela.
+- **Instalável (PWA, D1):** ícone na tela inicial, tela cheia e, no iPhone, a instalação é condição para receber notificação.
+- **Teste em aparelho real:** pelo menos um Android e um iPhone. O simulador do navegador não mostra câmera, microfone nem notificação de verdade.
 
 ---
 
@@ -158,6 +178,8 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 
 | Data | Mudança (pedida pelo usuário) | Motivo | Partes do plano afetadas |
 |---|---|---|---|
+| 22/10/2026 | **Plataforma mobile-first**: a área da cuidadora é desenhada primeiro para o celular; o painel do profissional (final), para o computador. Web e mobile têm características próprias (§2.5). Formato PWA confirmado na D1. | O uso será majoritariamente no celular | Nenhuma parte do plano contradiz; detalha a plataforma própria. |
+| 22/10/2026 | **Conjunto de fotos de caixas reduzido de 50 para 20 no regional.** As 50 fotos ficam para a final. | Juntar 50 fotos é difícil na etapa atual; a foto da receita física já é a entrada principal | §4.5 do plano (avaliação), Parte 7 (meta de 50 fotos em 18/10). |
 | 22/10/2026 | **Farmacovigilância reduzida no regional.** Fica a checagem de mesmo princípio ativo e uma tabela curada à mão (interações, duplicidade de classe, CBMPI) para os remédios da demo. Base licenciada, conversão de nomes em escala, CBMPI completo + Beers, RAG em bulas e efeito adverso × sintoma vão para a final. | Tirar do MVP a complexidade de dados (licença, conversão de nomes, bulas) sem perder o alerta da demo | §4.3 e §4.7 do plano (checagem), §4.5 (avaliação de pares), Parte 7 (dados de 18/10). Detalhes em [`escopo-por-fase.md`](escopo-por-fase.md). |
 | 22/10/2026 | **Foto da receita física (impressa ou escrita à mão) vira entrada principal**, ao lado das fotos de caixa e do PDF da receita digital. A manuscrita deixa de ser bônus. | É o que a cuidadora mais tem em mãos: o médico costuma entregar a receita em papel | §4.2 e §4.7 do plano (entrada), §4.5 (avaliação), Parte 2.5 item 3 ("tirar a letra de médico do caminho principal"). Retoma a entrada do escopo original da avaliação. |
 | 22/10/2026 | **WhatsApp substituído por plataforma própria.** Foto, PDF, áudio, conversa, lembretes e resumo passam a acontecer na plataforma da Seriema. | Evitar chaves e integrações trabalhosas, como as da Meta | Arquitetura (canal), §4.3 dados/canal, BMC (canais, relacionamento, custos "WhatsApp por conversa", parceria Meta), divisão do time ("WhatsApp, voz e PDF"), frases do pitch ("sem app para baixar", "pelo WhatsApp"). Os documentos em `docs/` **não foram editados**. |

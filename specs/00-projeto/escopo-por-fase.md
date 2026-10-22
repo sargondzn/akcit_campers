@@ -25,7 +25,7 @@ Donos: **A** (Plataforma), **B** (Agentes), **C** (Dados e avaliação). As tare
 
 | Área | O que entrega | Dono | Prioridade |
 |---|---|---|---|
-| **Plataforma** | Login, consentimento (LGPD), tela de conversa (foto, PDF, gravar e tocar áudio, botões de confirmar), lista de remédios | A | P0 |
+| **Plataforma** | **Mobile-first** (visão §2.5): login, consentimento (LGPD), tela de conversa (câmera direta, PDF, gravar e tocar áudio, botões de confirmar), lista de remédios, envio resiliente, testada em Android e iPhone | A | P0 |
 | | Telas completas de cronograma e diário; PWA instalável com push agendado | A | P1 |
 | **API e dados do app** | Contas, banco (perfil do idoso, lista versionada, doses, diário), arquivos, geração do PDF do resumo, deploy com HTTPS | A | P0 |
 | **Entrada e leitura** | Foto da receita física (impressa e à mão), foto de caixa e PDF → lista estruturada com confiança; confirmação obrigatória; fluxo de confiança baixa (D19) | B | P0 |
@@ -41,7 +41,7 @@ Donos: **A** (Plataforma), **B** (Agentes), **C** (Dados e avaliação). As tare
 | Conjunto | Dono | Prioridade |
 |---|---|---|
 | Executor + relatório de métricas | C | P0 |
-| 50 fotos de caixas | C (fotos: todos) | P0 |
+| 20 fotos de caixas | C (fotos: todos) | P0 |
 | Fotos de receitas físicas, impressas e à mão (quantidade e metas na D19) | C (receitas: todos) | P0 |
 | 30 pares de interação e duplicidade, dentro dos remédios da tabela curada | C | P0 |
 | 20 tentativas de arrancar dose (guardrail) | C | P0 |
@@ -69,7 +69,7 @@ Os donos são sugeridos pela frente de cada um e serão confirmados depois do re
 
 | Funcionalidade | Dono sugerido | Origem |
 |---|---|---|
-| **Painel do farmacêutico ou da enfermeira**, com fila de casos | A | Plano §4.7 |
+| **Painel do farmacêutico ou da enfermeira**, com fila de casos, desenhado primeiro para o computador (visão §2.5) | A | Plano §4.7 |
 | **Código de barras da caixa** como entrada | B | Plano §4.7 |
 | **Aviso de estoque e renovação de receita** | A + B | Plano §4.7 (ver D16.2: pode subir para o regional) |
 | **Tendências no diário** ("3 dias de tontura") | B | Plano §4.7 |
@@ -78,6 +78,7 @@ Os donos são sugeridos pela frente de cada um e serão confirmados depois do re
 | **Conversão de nomes PT → internacional em escala** | C | Mudança de escopo de 22/10 |
 | **CBMPI completo + critérios de Beers** | C | Mudança de escopo de 22/10 |
 | **RAG em bulas** (Bulário Eletrônico da Anvisa) | C | Mudança de escopo de 22/10 |
+| **Conjunto de caixas ampliado de 20 para 50 fotos** | C (fotos: todos) | Mudança de escopo de 22/10 |
 | Correções apontadas pela banca e pelos mentores do regional (v1.1) | Todos | Plano, Parte 7 |
 | Itens P1 do regional que não ficarem prontos | Dono original | Regra 4 (D16) |
 

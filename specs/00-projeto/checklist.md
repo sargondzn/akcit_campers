@@ -13,7 +13,8 @@
 - [x] Trocar WhatsApp por plataforma própria na visão e na discussão (22/10)
 - [x] Propor divisão do time em 3 pessoas (`divisao.md`)
 - [x] Incluir foto da receita física como entrada principal (22/10)
-- [ ] **Todos** — Responder a discussão (D0–D19) e definir quem é A, B e C (D12)
+- [x] Documentar a plataforma mobile-first (visão §2.5, D20) (22/10)
+- [ ] **Todos** — Responder a discussão (D0–D20) e definir quem é A, B e C (D12)
 - [ ] **Todos** — Aprovar `spec.md` do 00-projeto, com os contratos C1–C7
 - [ ] Criar as pastas das frentes (D10), cada uma com `discussao.md`, `spec.md` e `checklist.md`
 - [ ] Resolver D13 (destino da pasta `docs/` e link quebrado no plano)
@@ -29,8 +30,12 @@
 - [ ] **A · P0** — API: contas e login
 - [ ] **A · P0** — Banco: perfil do idoso, lista de remédios versionada, doses, diário; funções de acesso (C6)
 - [ ] **A · P0** — Upload e armazenamento de foto, PDF e áudio
+- [ ] **A · P0** — Base mobile-first do frontend: layout de uma coluna em retrato, botões grandes, ações ao alcance do polegar, fonte ≥ 16 px, áreas seguras e teclado virtual (visão §2.5, D20)
 - [ ] **A · P0** — Frontend: login e tela de consentimento (LGPD)
 - [ ] **A · P0** — Frontend: tela de conversa (enviar foto/PDF, gravar áudio, tocar áudio, botões de confirmar)
+- [ ] **A · P0** — Câmera direta (traseira, com galeria como alternativa) e redução da imagem antes do envio
+- [ ] **A · P0** — Envio resiliente em rede móvel: indicador, reenvio, sem perder foto ou áudio
+- [ ] **A · P0** — Testar o fluxo da demo em aparelho real (Android e iPhone)
 - [ ] **A · P0** — Frontend: tela da lista de remédios
 - [ ] **A · P0** — Lembrete disparado na hora, na tela (demo)
 - [ ] **A · P0** — Geração do PDF a partir do `Resumo` (C5)
@@ -46,7 +51,7 @@
 - [ ] **B · P0** — Fluxo de confiança baixa (nova foto, foto da caixa, item "não confirmado") — conforme D19
 - [ ] **B · P0** — Fluxo de confirmação (proposta de lista → confirmação da cuidadora)
 - [ ] **B · P0** — Orquestrador: estado da conversa e roteamento para os agentes (C1)
-- [ ] **B · P0** — Voz: STT do áudio da cuidadora e TTS do lembrete
+- [ ] **B · P0** — Voz: STT do áudio da cuidadora (aceitando WebM/Opus e MP4/AAC) e TTS do lembrete
 - [ ] **B · P0** — Diário: transcrição → sintoma estruturado (com perguntas de acompanhamento)
 - [ ] **B · P0** — Escalonador: aplica `avaliar_gravidade` → 192 ou `Resumo` (C5)
 - [ ] **B · P0** — Auditor: frases proibidas, remédio fora da lista, fonte citada
@@ -59,13 +64,13 @@
 - [ ] **C · P0** — Tabela curada à mão para os ~15–20 remédios da demo: pares de interação, grupos de classe e itens do CBMPI, com fonte em cada linha → `checar_lista` (C3)
 - [ ] **C · P0** — Sinais de alarme e regras de gravidade → `avaliar_gravidade` (C4)
 - [ ] **C · P0** — Harness: executor + relatório de métricas
-- [ ] **C · P0** — Conjuntos P0: 50 fotos de caixas (rótulos), 30 pares, 20 tentativas de guardrail
+- [ ] **C · P0** — Conjuntos P0: 20 fotos de caixas (rótulos), 30 pares, 20 tentativas de guardrail
 - [ ] **C · P0** — Conjuntos de receitas físicas: fotos impressas e manuscritas (quantidade e metas em D19)
 - [ ] **C · P1** — Conjuntos restantes: 10 PDFs, 20 relatos
 
 ### Todos
 
-- [ ] **Todos · P0** — Fotografar caixas de remédio (meta: 50)
+- [ ] **Todos · P0** — Fotografar caixas de remédio (meta: 20)
 - [ ] **Todos · P0** — Juntar receitas físicas reais, impressas e à mão, anonimizadas (D19)
 - [ ] **Todos · P0** — Integração: dados → agentes → plataforma
 - [ ] **Todos · P0** — Rodar o harness, congelar o código, gravar vídeo de backup da demo

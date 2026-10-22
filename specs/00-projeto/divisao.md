@@ -16,9 +16,11 @@ Cada pessoa é **dona de um pedaço do sistema**, com pastas próprias no códig
 |---|---|---|---|
 | **Frentes em `specs/`** | `frontend`, `backend` | `agentes` | `dados`, `harness` |
 | **É dona de** | Interface da cuidadora, API, contas, banco, arquivos, agendador de lembretes, geração do PDF, deploy | Orquestrador, Leitor, Diário + Escalonador, Auditor, cliente do LLM, voz (STT/TTS) | Normalizador, Farmacovigilante (no regional: mesmo princípio ativo + tabela curada), regras de gravidade e sinais de alarme, harness de avaliação |
-| **Perfil ideal** | JS/TS + React, um pouco de Python | Python + LLM | Python + dados (planilhas, ETL); gosto por curadoria |
+| **Perfil ideal** | JS/TS + React, um pouco de Python; **noção de desenvolvimento mobile** (ver abaixo) | Python + LLM | Python + dados (planilhas, ETL); gosto por curadoria |
 | **Entrega para os outros** | Schema do banco e funções de acesso (para B); endpoint que chama o agente | `processar_mensagem` (para A); conteúdo do resumo (para A); Leitor e Auditor chamáveis (para C) | `normalizar`, `checar_lista`, `avaliar_gravidade` (para B); relatório de métricas (para o pitch) |
 | **Trabalha com stub de** | Agente (respostas falsas) | Funções de dados (respostas falsas); banco em memória | Nenhum: suas funções são puras e testáveis sozinhas |
+
+**O que a Pessoa A precisa ter em mente:** a plataforma será usada principalmente no **celular**. A área da cuidadora é desenhada primeiro para o celular, e o painel do profissional (final) primeiro para o computador. Web e mobile têm características próprias: toque com uma mão, câmera, gravação de áudio, rede instável, teclado virtual, instalação como PWA e teste em aparelho real. A lista completa está em [`visao.md` §2.5](visao.md), e as decisões na D20.
 
 **Por que a avaliação fica com C:** quem mede não é quem construiu o Leitor e o Auditor. Isso é o verificador independente que a banca valoriza.
 
@@ -27,7 +29,7 @@ Cada pessoa é **dona de um pedaço do sistema**, com pastas próprias no códig
 ### Tarefas compartilhadas (todos)
 
 - Fechar a discussão e aprovar os contratos **antes de codar**.
-- Fotografar caixas de remédio para o conjunto de avaliação (meta: 50 fotos).
+- Fotografar caixas de remédio para o conjunto de avaliação (meta: 20 fotos no regional; 50 na final).
 - Integração final e ensaio da demo.
 - Negócio (entrevistas, BMC, pitch, relatórios quinzenais): **dono em aberto**, ver D12.
 
@@ -39,7 +41,7 @@ Ficam em `contratos/` no código e são detalhados em `00-projeto/spec.md`. **Mu
 
 | # | Entre | Contrato | Exemplo do que passa |
 |---|---|---|---|
-| C1 | A → B | `processar_mensagem(conta, mensagem) → resposta` | Entrada: texto, foto, PDF ou áudio. Saída: texto, áudio, lista para confirmar, alertas, ação "ligue 192" |
+| C1 | A → B | `processar_mensagem(conta, mensagem) → resposta` | Entrada: texto, foto, PDF ou áudio (**WebM/Opus ou MP4/AAC**, conforme o navegador). Saída: texto, áudio, lista para confirmar, alertas, ação "ligue 192" |
 | C2 | B → C | `normalizar(nome_comercial) → princípio ativo + concentração` | "Losartana Potássica 50mg" → losartana, 50 mg |
 | C3 | B → C | `checar_lista(princípios) → alertas com fonte` | Interação, duplicidade, CBMPI |
 | C4 | B → C | `avaliar_gravidade(sintoma) → conduta` | "queda + batida na cabeça" → 192 |

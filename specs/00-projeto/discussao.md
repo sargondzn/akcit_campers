@@ -18,7 +18,11 @@
 3. O que já foi feito fora do repositório: entrevistas, fotos de caixas, dados baixados, acesso ao DDInter/DrugBank?
 4. As entrevistas confirmaram que o remédio é a dor, ou houve giro?
 
-**Resposta:**
+**Resposta:** 
+1. A inscrição já foi feita e estamos na trilha de Goiânia (24/10). 
+2. Não sei se muda na trilha online, mas a entrega é de acordo com o plano.
+3. Nada foi feito ainda fora do repositório além de uma entrevista.
+4. As entrevistas mostraram que a nossa solução é viável e resolve uma dor cotidiana de cuidadores de idosos.
 
 ---
 
@@ -52,6 +56,23 @@
 | **C. Web simples, sem PWA** | O mais rápido de fazer | Sem push: o lembrete só aparece com a página aberta |
 
 **Recomendação:** A. Na demo, o lembrete pode ser disparado na hora, então a limitação do iPhone não atrapalha.
+
+**Resposta:** Faremos de acordo com a sugestão A.
+
+---
+
+## D20 — Experiência mobile
+
+**Contexto:** o uso será majoritariamente no celular (visão §2.5). A área da cuidadora é desenhada primeiro para o celular; o painel do profissional (final), primeiro para o computador.
+
+**Perguntas:**
+1. **Aparelhos-alvo:** testamos em quais celulares reais? Há pelo menos um Android e um iPhone no time?
+2. **Gravação de áudio:** "segurar para falar" (estilo WhatsApp) ou "tocar para gravar, tocar para parar"? O segundo é mais fácil para quem tem pouca firmeza na mão.
+3. **Celular de entrada:** consideramos aparelhos Android mais simples (pouca memória, tela pequena, rede 4G fraca) como referência de desempenho?
+4. **Computador na área da cuidadora:** basta "funcionar" (coluna central), ou ela precisa de um layout próprio no computador já no regional?
+5. **Biblioteca de componentes:** algo pronto e pensado para toque (ex.: shadcn/ui ou Radix + Tailwind), ou componentes próprios?
+
+**Recomendação:** 1 — um Android e um iPhone. 2 — tocar para gravar e tocar para parar. 3 — sim. 4 — basta funcionar. 5 — shadcn/ui com Tailwind, se a D18 for React.
 
 **Resposta:**
 
@@ -309,7 +330,7 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 
 ## D14 — Dados de teste e LGPD
 
-**Contexto:** o harness precisa de 50 fotos de caixas, 10 PDFs, 10 manuscritas, 30 pares, 20 relatos e 20 tentativas (plano).
+**Contexto:** no regional, o harness precisa de 20 fotos de caixas (50 na final), fotos de receitas físicas (D19), 10 PDFs, 30 pares, 20 relatos e 20 tentativas.
 
 **Perguntas:**
 1. O que já existe desses conjuntos?
