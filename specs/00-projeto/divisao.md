@@ -66,6 +66,8 @@ contratos/             ← todos (só com acordo)
 
 A estrutura final depende de D2, D10 e D18.
 
+Em 23/10/2026 a interface foi para o repositório `akcit-campers-front`. A API ficou neste repositório, em `plataforma/api`.
+
 ---
 
 ## 5. Ordem de trabalho
