@@ -1,19 +1,19 @@
 # Visão do projeto — Seriema (F3: cuidador familiar e a medicação do idoso)
 
-> Resumo da minha leitura do projeto. **Última revisão: 22/10/2026** (troca do WhatsApp por plataforma própria).
+> Resumo da minha leitura do projeto. **Última revisão: 23/10/2026** (respostas da discussão incorporadas).
 >
 > **Fontes do escopo:**
 > - [`docs/f3_plano_startup_v1.md`](../../docs/f3_plano_startup_v1.md) — plano de 16/10: mercado, caminhos, arquitetura, BMC, riscos e cronograma.
 > - [`docs/f3_cuidador_medicacao.md`](../../docs/f3_cuidador_medicacao.md) — escopo original, extraído da avaliação dos candidatos.
 > - **Mudanças de escopo pedidas pelo usuário** (seção 5 deste arquivo). Elas **prevalecem** sobre os dois documentos acima, que ficam como histórico.
 >
-> As divergências entre as duas fontes estão na D0 de [`discussao.md`](discussao.md); não escolhi nenhum lado. O que é análise minha está marcado com *(leitura minha)*.
+> Nas divergências entre as duas fontes, **o plano prevalece** (D0 de [`discussao.md`](discussao.md)). A pasta `docs/` fica fora do repositório; quem precisar pede ao administrador. O que é análise minha está marcado com *(leitura minha)*.
 
 ---
 
 ## 1. O que é
 
-A **Seriema** (nome provisório) é uma **plataforma própria** em que a **cuidadora familiar** de um idoso que toma muitos remédios conversa com um agente de IA.
+A **Seriema** é uma **plataforma própria** em que a **cuidadora familiar** de um idoso que toma muitos remédios conversa com um agente de IA, a **Seri** (D15.1).
 
 Na plataforma, a cuidadora **fotografa a receita física** que recebeu do médico, impressa ou escrita à mão. Esse deve ser o caso mais comum. Ela também pode **fotografar as caixas de remédio** e **enviar o PDF da receita digital**. O agente **monta uma lista única** com os remédios de vários médicos e pede que ela **confirme**. Depois disso, ele:
 - **aponta interações, duplicidades e remédios inapropriados para idosos**, sempre mandando levar ao farmacêutico ou ao médico;
@@ -93,7 +93,7 @@ O sistema tem três camadas: a **plataforma** (o que a cuidadora vê), o **harne
 | **Guardrails** | **Regras fixas** | Sinal de alarme vai para "ligue 192" sem passar pelo modelo | Determinístico | B + C |
 | | **Confirmação humana** | Ações que mudam a lista ou o cronograma só valem depois do "confirmo" da cuidadora | Fluxo fixo | B |
 | | **Auditor** | Bloqueia saída com remédio fora da lista, frase proibida ou fato clínico sem fonte | Verificador independente | B |
-| **Observabilidade** *(proposta, D21)* | **Registro de passos** | Guarda cada observação, ferramenta chamada, resultado e bloqueio do Auditor | Log | B |
+| **Observabilidade** *(P1, D21)* | **Registro de passos** | Guarda cada observação, ferramenta chamada, resultado e bloqueio do Auditor | Log | B |
 
 Fora do harness ficam a **plataforma e a API** (Pessoa A) e a **avaliação** (Pessoa C), que mede o harness de fora.
 
@@ -101,12 +101,13 @@ Fora do harness ficam a **plataforma e a API** (Pessoa A) e a **avaliação** (P
 
 | | **Regional** (24/10 ou 31/10) | **Final** (28/11) |
 |---|---|---|
-| Plataforma | Área da cuidadora: conversa, envio de foto/PDF/áudio, lista, cronograma, diário, resumo | + painel do profissional |
+| Plataforma | Área da cuidadora, **PWA instalável**: conversa, envio de foto/PDF/áudio, lista, cronograma, diário, resumo | + painel do profissional |
 | Entrada | **Foto da receita física (impressa ou à mão)** + fotos de caixas + PDF de receita digital, sempre com confirmação | Código de barras da caixa |
-| Checagem | **Mesmo princípio ativo** em nomes diferentes (sai do Normalizador) + **tabela curada à mão** com os remédios da demo (~15–20): pares de interação, grupos para duplicidade de classe e itens do CBMPI, cada linha com fonte | Base de interações completa e licenciada; conversão de nomes PT → internacional em escala; CBMPI completo + Beers; RAG em bulas; efeito adverso × sintoma relatado |
+| Normalização | ~20 remédios (D16) | Ampliada |
+| Checagem | **Mesmo princípio ativo** em nomes diferentes (sai do Normalizador) + **tabela curada** com os remédios da demo, **gerada e conferida com LLM** (D7.2, D15.4): pares de interação, grupos para duplicidade de classe e itens do CBMPI, cada linha com fonte | Base de interações completa e licenciada; conversão de nomes PT → internacional em escala; CBMPI completo + Beers; RAG em bulas; efeito adverso × sintoma relatado |
 | Rotina | Lembrete por notificação (texto e áudio); confirmação de dose | Aviso de estoque e renovação de receita |
 | Diário | Áudio → sintoma → regra de gravidade | Tendências ("3 dias de tontura") |
-| Escalonamento | Resumo em PDF para consulta / farmacêutico | Painel do farmacêutico ou da enfermeira com fila de casos |
+| Escalonamento | Resumo em PDF + link sem conta para o profissional (D9) | Painel do farmacêutico ou da enfermeira com fila de casos |
 | Prova | Avaliação (seção 2.4) + 5 a 10 entrevistas | Piloto de 2 semanas com 5–10 famílias + carta de intenção |
 
 ### 2.3 Guardrails (inegociáveis)
@@ -126,10 +127,10 @@ A avaliação mede o harness **de fora**, com conjuntos de casos e metas. É fei
 |---|---|---|
 | Leitura de caixas | 20 fotos reais (50 na final) | ≥ 95% (princípio ativo + concentração) |
 | Leitura de receita digital | 10 PDFs anonimizados | ≥ 95% |
-| Leitura de manuscrita | 10 fotos | Medir e mostrar o número |
-| Leitura de receita impressa (foto) | a definir (D19) | a definir (D19) |
-| Interações e duplicidades | 30 pares conferidos por farmacêutico, dentro dos remédios da tabela curada (ver D7) | Recall ≥ 90% |
-| Escalonamento | 20 relatos com conduta certa | 100% dos alarmes → 192 |
+| Leitura de manuscrita | 20 fotos (D19) | Medir e mostrar o número |
+| Leitura de receita impressa (foto) | 10 fotos (D19) | ≥ 95% |
+| Interações e duplicidades | 30 pares dentro dos remédios da tabela curada, conferidos com LLM no regional (D15.4) | Recall ≥ 90% |
+| Escalonamento | 20 relatos com conduta certa, conferidos com LLM no regional (D15.4) | 100% dos alarmes → 192 |
 | Guardrail | 20 tentativas de arrancar dose | 0 respostas com dose |
 
 ### 2.5 Mobile em primeiro lugar
@@ -146,7 +147,7 @@ Características que a área da cuidadora precisa ter (detalhes e decisões na D
 - **Uso com uma mão:** botões grandes (área de toque ≥ 44–48 px) e ações principais na parte de baixo da tela, ao alcance do polegar.
 - **Leitura fácil para a persona (40–65 anos):** fonte base ≥ 16 px (o que também evita o zoom automático do iPhone nos campos), alto contraste, frases curtas.
 - **Câmera direta:** o botão de foto abre a câmera traseira, com a galeria como alternativa. A imagem é reduzida no próprio celular antes do envio.
-- **Áudio por toque:** gravação simples ("segurar para falar" ou "tocar para gravar/parar"). *(leitura minha)* Cada navegador grava num formato (o Chrome em WebM/Opus, o Safari em MP4/AAC), então a API e a voz (B) precisam aceitar os dois. Isso entra no contrato C1.
+- **Áudio por toque:** "tocar para gravar, tocar para parar" (D20.2). *(leitura minha)* Cada navegador grava num formato (o Chrome em WebM/Opus, o Safari em MP4/AAC), então a API e a voz (B) precisam aceitar os dois. Isso entra no contrato C1.
 - **Rede móvel instável:** indicador de envio, reenvio automático e nada de perder a foto ou o áudio se o envio falhar.
 - **Detalhes de tela de celular:** teclado virtual que não cobre o campo, áreas seguras (entalhe da câmera, barra inferior), altura real da tela.
 - **Instalável (PWA, D1):** ícone na tela inicial, tela cheia e, no iPhone, a instalação é condição para receber notificação.
@@ -158,13 +159,14 @@ Características que a área da cuidadora precisa ter (detalhes e decisões na D
 
 | Eixo | Situação | Comentário |
 |---|---|---|
-| **Prazo** | 🔴 **Crítico** | *(leitura minha)* O repositório ainda não tem código. Na trilha **Goiânia (24/10)** sobram cerca de 2 dias; na **Online (31/10)**, cerca de 9. A plataforma própria acrescenta uma frente de frontend ao MVP. Ver D11 e D16. |
-| **Plataforma própria** | 🟢 Viável | *(leitura minha)* Sem cadastro na Meta, sem templates e sem número de teste. Navegadores modernos já fazem tudo de que precisamos: câmera e upload de arquivo, gravação de áudio e notificações push. O Web Push usa chaves que nós mesmos geramos, sem conta em terceiros. **A chave do LLM continua necessária** (D3). |
+| **Prazo** | 🔴 **Crítico** | *(leitura minha)* Trilha **Goiânia, regional em 24/10** (D11), com o repositório ainda sem código em 23/10. O escopo foi mantido (D16), com P0/P1 e a regra de que o P1 que sobrar vai para a final. |
+| **Plataforma própria** | 🟢 Viável | *(leitura minha)* Sem cadastro na Meta, sem templates e sem número de teste. Navegadores modernos já fazem tudo de que precisamos: câmera e upload de arquivo, gravação de áudio e notificações push. O Web Push usa chaves que nós mesmos geramos, sem conta em terceiros. Com o modelo open-source local (D3), **nenhuma chave de API** é necessária no regional. |
 | **Notificação de lembrete** | 🟡 | *(leitura minha)* No iPhone, o push web só funciona se a plataforma for instalada na tela inicial (iOS 16.4+). No Android funciona direto no navegador. Na demo, o lembrete pode ser disparado na hora. |
 | **Leitura** | 🟡 / 🔴 | Foto de receita impressa, caixa e PDF digital trazem texto impresso, e o modelo deve ler bem. *(leitura minha)* **A receita à mão agora está no caminho principal**, e é a entrada que os modelos leem pior (F1 ≈ 7,6% num estudo de 2024, sem ajuste fino). A confirmação obrigatória e o pedido de nova foto (ou da caixa) quando a confiança for baixa viram peças centrais da segurança. Ver D19. |
 | **Normalização** | 🟢 Viável | Base da Anvisa e CMED são públicas. Falta checar o campo de princípio ativo no dicionário de dados. |
-| **Farmacovigilância** | 🟢 Regional / 🟡 Final | **Regional:** viável. A checagem de mesmo princípio ativo sai do Normalizador, e a tabela curada à mão é pequena (~15–20 remédios). **Final:** é aqui que ficam as partes trabalhosas. DDInter e DrugBank só valem para uso não comercial, então é preciso licença. Bulas da Anvisa não têm API. O CBMPI precisa ser transcrito por completo. É preciso converter os nomes dos princípios ativos do português para o nome internacional, porque as bases de interação estão em inglês. |
+| **Farmacovigilância** | 🟢 Regional / 🟡 Final | **Regional:** viável. A checagem de mesmo princípio ativo sai do Normalizador, e a tabela curada é pequena (~20 remédios) e gerada com LLM (D7.2). **Final:** é aqui que ficam as partes trabalhosas. DDInter e DrugBank só valem para uso não comercial, então é preciso licença. Bulas da Anvisa não têm API. O CBMPI precisa ser transcrito por completo. É preciso converter os nomes dos princípios ativos do português para o nome internacional, porque as bases de interação estão em inglês. |
 | **Voz** | 🟢 Viável | STT do áudio gravado na plataforma; TTS do lembrete tocado na plataforma. |
+| **Modelo local em CPU** | 🟡 / 🔴 | *(leitura minha)* Modelos open-source locais (D3) em máquina sem GPU (D22): sem chave e sem dado saindo para um provedor de IA, mas modelos pequenos leem pior (sobretudo a receita à mão) e cada foto pode levar bem mais que alguns segundos. Mitigações na `spec.md` §3: processamento assíncrono, imagem reduzida, teste de bancada dos modelos e vídeo de backup da demo. |
 | **Regulatório** | 🔴 Risco na final | Possível SaMD (RDC 657/2022 e 751/2022, provável classe II). O agente organiza e encaminha; o farmacêutico decide. Buscar parecer de especialista. |
 | **LGPD** | 🟡 | Dado de saúde é sensível. *(leitura minha)* Com plataforma própria, a guarda dos dados é nossa: login, controle de acesso e armazenamento passam a ser responsabilidade do projeto. |
 | **Adoção** | 🟡 Novo risco | *(leitura minha)* O plano apoiava o engajamento no "sem app para baixar, tudo no WhatsApp". Com plataforma própria, a cuidadora precisa abrir e, idealmente, instalar mais uma ferramenta. Vale perguntar isso nas entrevistas. |
@@ -207,6 +209,11 @@ Características que a área da cuidadora precisa ter (detalhes e decisões na D
 
 | Data | Mudança (pedida pelo usuário) | Motivo | Partes do plano afetadas |
 |---|---|---|---|
+| 23/10/2026 | **Normalizador com ~20 remédios** no regional (eram ~50). | Prazo do regional | §4.3 do plano (lista dos 50), Parte 7. O restante vai para a final. |
+| 23/10/2026 | **PWA instalável já no regional** (era P1). O push agendado continua P1. | Experiência de app no celular desde a demo | Tabela P0/P1 (D16). |
+| 23/10/2026 | **Conferência clínica com LLM no regional:** a tabela curada, os pares de interação e os relatos de sintoma são gerados e conferidos com LLM. Revisão por profissional na final, se necessário. | O time não tem ninguém da saúde; o objetivo do regional é o sistema funcionar na demo | §4.5 do plano ("30 pares conferidos por farmacêutico", relatos), curadoria da tabela (D7). |
+| 23/10/2026 | **Modelos open-source locais no regional** no lugar de Claude via AWS Bedrock. API comercial (OpenAI ou Anthropic) só na final, se houver acesso. | Sem acesso a API no momento | Arquitetura do plano (Bedrock e créditos AWS), custos do BMC. |
+| 23/10/2026 | **Conjuntos de receitas físicas:** 10 fotos de receitas impressas (meta ≥ 95%) e 20 manuscritas (medir e mostrar), ambos P0. | A receita física virou a entrada principal | §4.5 do plano (avaliação). |
 | 23/10/2026 | **Nomenclatura: "harness" passa a significar harness agêntico.** É tudo o que envolve o modelo para ele perceber, decidir e agir: percepção, memória, loop de decisão, ferramentas, guardrails e registro de passos (§2.1). A antiga frente "harness" (testes e métricas) passa a se chamar **avaliação**, e a frente "agentes" passa a se chamar **harness**. | Alinhar o termo ao conceito de harness agêntico e descrever melhor a parte do agente | Nomes de frentes e pastas, divisão do time, checklist. As referências em `docs/` falam em "agentes", que aqui são componentes do harness. |
 | 22/10/2026 | **Plataforma mobile-first**: a área da cuidadora é desenhada primeiro para o celular; o painel do profissional (final), para o computador. Web e mobile têm características próprias (§2.5). Formato PWA confirmado na D1. | O uso será majoritariamente no celular | Nenhuma parte do plano contradiz; detalha a plataforma própria. |
 | 22/10/2026 | **Conjunto de fotos de caixas reduzido de 50 para 20 no regional.** As 50 fotos ficam para a final. | Juntar 50 fotos é difícil na etapa atual; a foto da receita física já é a entrada principal | §4.5 do plano (avaliação), Parte 7 (meta de 50 fotos em 18/10). |
