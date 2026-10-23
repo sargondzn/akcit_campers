@@ -1,7 +1,8 @@
 # Discussão — 00-projeto (escopo, stack, frentes e prazos)
 
 > **Revisada em 22/10/2026:** o WhatsApp saiu e entrou a plataforma própria (ver [`visao.md`](visao.md) §5).
-> Responda no campo **Resposta** de cada item. A `spec.md` só será escrita depois das respostas.
+> **Respondida em 23/10/2026.** As respostas viraram a [`spec.md`](spec.md) do projeto e as specs das frentes. A D22 foi aberta e respondida em 23/10, ao escrever as specs.
+> Novas perguntas que surgirem ficam na `discussao.md` da frente correspondente.
 > Cada decisão traz contexto, opções e uma recomendação minha; a decisão é sua.
 
 **Ordem sugerida:** D11 (prazo) → D0 (fonte do escopo) → D1 e D17 (plataforma) → D15 → D16. As outras dependem dessas.
@@ -41,7 +42,7 @@
 
 **Pergunta:** o **plano prevalece** sobre o escopo original nessas divergências, respeitadas as mudanças de escopo da visão §5? (Recomendação: sim.)
 
-**Resposta:**
+**Resposta:** Sim.
 
 ---
 
@@ -75,6 +76,11 @@
 **Recomendação:** 1 — um Android e um iPhone. 2 — tocar para gravar e tocar para parar. 3 — sim. 4 — basta funcionar. 5 — shadcn/ui com Tailwind, se a D18 for React.
 
 **Resposta:**
+1. Sim, temos iphone e android no time, podemos preparar para os dois os.
+2. Tocar para gravar e tocar para parar.
+3. Sim.
+4. Basta funcionar.
+5. Shadcn/ui com Tailwind, se a D18 for React.
 
 ---
 
@@ -94,7 +100,7 @@
 
 **Recomendação:** A; login por e-mail + senha; um idoso por conta no MVP.
 
-**Resposta:**
+**Resposta:** A; login por e-mail + senha; um idoso por conta no MVP.
 
 ---
 
@@ -106,6 +112,10 @@
 4. **Alguém de saúde** (Farmácia/Enfermagem) entrou no time ou como mentor? Quem confere os 30 pares de interação e os 20 relatos de sintoma?
 
 **Resposta:**
+1. Nome será Seriema. O agente pode ser chamar Seri.
+2. Queremos que haja essa menção a interação.
+3. Operadora.
+4. Não temos ninguém da saúde no time. Iremos usar llms para fazer a conferência na etapa regional. Na etapa final, se necessário, iremos passar esses dados para análise por parte de um profissional.
 
 ---
 
@@ -131,6 +141,9 @@ Também há uma divergência interna no plano: o **aviso de estoque** aparece na
 2. Aviso de estoque: regional ou final?
 
 **Resposta:**
+1. Quero que o PWA seja intalável já na etapa regional. No normalizador, iremos usar cerca de 20 remédios. De resto, concordo com a ideia de separação entre p0 e p1.
+2. O registro de estoque fica apenas para a final.
+
 
 ---
 
@@ -147,6 +160,11 @@ Também há uma divergência interna no plano: o **aviso de estoque** aparece na
 **Recomendação:** 1 — sim, para as duas. 2 — (a), depois (b) ou (c), e (d) até que a cuidadora confirme. 3 — sim.
 
 **Resposta:**
+1. Sim para as duas.
+2. (a), depois (b) ou (c), e (d) até que a cuidadora confirme.
+3. Sim.
+4. Provavelmente não uma quantidade satisfatória até a entrega local, mas podemos providenciar uma quantidade satisfatória caso cheguemos até a final.
+
 
 ---
 
@@ -161,6 +179,10 @@ Também há uma divergência interna no plano: o **aviso de estoque** aparece na
 4. Idioma do código e dos comentários: português ou inglês?
 
 **Resposta:**
+1. A é a Beatriz, B é o Caio e C é o Roberto. A experiência aqui é irrelevante, cada um irá dar o seu próprio jeito de resolver os problemas.
+2. Sim, concordo.
+3. Podemos deixar a pessoa C com isso, mas essa parte de negócio deve passar por uma revisão por parte de todos os outros membros do grupo.
+4. Iremos deixar em português.
 
 ---
 
@@ -173,7 +195,7 @@ Também há uma divergência interna no plano: o **aviso de estoque** aparece na
 
 **Recomendação:** A.
 
-**Resposta:**
+**Resposta:** Faremos de acordo com a opção A.
 
 ---
 
@@ -187,7 +209,7 @@ Também há uma divergência interna no plano: o **aviso de estoque** aparece na
 
 **Recomendação:** A, se o time conhecer React; senão, conversamos.
 
-**Resposta:**
+**Resposta:** Seguiremos a opção A.
 
 ---
 
@@ -209,7 +231,9 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 
 **Recomendação:** B para começar, com o cliente do LLM isolado para a troca ser trivial.
 
-**Resposta:**
+**Resposta:** Seguiremos a recomendação C.
+
+Observação para o grupo: se algum de vocês conseguir ter acesso à API da OpenAI ou da Anthropic, podemos usar caso cheguemos na final, mas para a etapa regional, acho que faz mais sentido usarmos um modelo open-source.
 
 ---
 
@@ -225,7 +249,7 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 
 **Recomendação:** B para STT se a máquina da demo aguentar; senão A. TTS: A ou Piper.
 
-**Resposta:**
+**Resposta:** Faremos conforme a recomendação B.
 
 ---
 
@@ -241,7 +265,7 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 
 **Recomendação:** A. Cada componente do harness vira um módulo com contrato tipado, e o diagrama da visão §2.1 cumpre o papel visual na banca.
 
-**Resposta:**
+**Resposta:** Usaremos para a etapa regional a opção A. Mas iremos desenvolver para a opção B, caso a gente chegue na final.
 
 ---
 
@@ -258,6 +282,10 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 **Recomendação:** 1 — até 5 chamadas por mensagem. 2 e 3 — como sugerido. 4 — sim, como P1.
 
 **Resposta:**
+1. Até 5 chamadas por mensagem.
+2. Faça como sugerido.
+3. Faça conforme o sugerido.
+4. Sim, faremos conforme o sugerido.
 
 ---
 
@@ -272,7 +300,7 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 
 **Recomendação:** A, com camada de acesso que permita migrar no piloto.
 
-**Resposta:**
+**Resposta:** Vamos usar a A para a demo. Talvez migremos para a B, caso passemos para a final.
 
 ---
 
@@ -286,6 +314,9 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 3. *(leitura minha)* **Evitar a avaliação circular:** se os 30 pares da avaliação vierem da mesma fonte que a tabela, o recall dá 100% sem provar nada. Sugestão: quem monta os pares de teste (o farmacêutico ou outra pessoa) não é quem montou a tabela, e os pares incluem casos negativos e casos fora da tabela.
 
 **Resposta:**
+1. Acho que essa parte de fotos para o normalizador pode ser apenas para termos uma noção de como o sistema está respondendo, identificando acurácia e outros fatores para melhora do sistema. Podemos deixar o próprio responsável pela frente para selecionar as fotos dentro desse contexto.
+2. Não temos uma referência fixa, podemos usar uma llm para gerar essa tabela para a gente, é algo que não queremos detalhar muito antes da final. Podemos pensar em aumentar a complexidade depois da etapa regional. Por enquanto, queremos apenas que o sistema funcione corretamente durante a demo.
+3. Não acho que precisamos ter muito trabalho nessa parte, além de que já temos uma equipe reduzida, então não pretendo seguir essa sugestão.
 
 ---
 
@@ -301,7 +332,7 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 
 **Recomendação:** A para desenvolver; B para a entrega.
 
-**Resposta:**
+**Resposta:** Quero que seja possível testar localmente usando o Docker de suporte e vamos usar a Netlify para a hospedagem, deixando o sistema em produção e disponível para o acesso por parte da banca.
 
 ---
 
@@ -311,7 +342,7 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 
 **Pergunta:** no MVP, o PDF fica **só disponível para a cuidadora** (baixar ou compartilhar pelo celular), ou também gera um **link de acesso** para o profissional abrir sem conta?
 
-**Resposta:**
+**Resposta:** Acho interessante abrir um link de acesso sme necessidade de criação de conta.
 
 ---
 
@@ -331,6 +362,8 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 2. Quer a frente `negocio` em `specs/`, ou só as técnicas?
 
 **Resposta:**
+1. Vamos deixar as frentes conforme o que você sugeriu (frontend, backend, harness, dados, avaliacao e negocio). A parte de negócio não é obrigatória para o desenvolvimento do sistema, mas deve estar ali, pois ela é fundamental para o dia do akcit camp.
+2. Quero ela em specs, sim.
 
 ---
 
@@ -344,6 +377,9 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 3. Os documentos de referência devem ganhar uma nota sobre a troca do WhatsApp, ou o registro na `visao.md` §5 basta?
 
 **Resposta:**
+1. Não, você deve deixar o que já temos.
+2. Não precisa corrigir o link quebrado. Só adicionar uma observação de que essa documentação auxiliar está de fora do repositório, mas pode ser requisitada para o admin.
+3. Não precisa, só a pasta de `specs/` que precisa ter em algum lugar sobre a mudança do whatsapp.
 
 ---
 
@@ -363,3 +399,17 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 Acho importante dizer aqui que talvez não consigamos trazer tudo que a etapa de harness pede, já que estamos muito próximos da data do evento.
 
 > *Nota (23/10):* nesta resposta, "harness" está no sentido antigo, de **avaliação**. Pela nova nomenclatura (visão §5), a frase se refere aos conjuntos de avaliação. Isso conversa com a D16, que define o que é P0 e o que é P1 na avaliação.
+
+---
+
+## D22 — Onde rodam a API e o modelo em produção
+
+**Contexto:** a Netlify (D8) hospeda só o frontend (páginas estáticas e funções curtas). A API em FastAPI, o SQLite, o agendador, o faster-whisper e o modelo open-source local (D3) precisam de outro lugar. O modelo de visão precisa de GPU para responder em segundos; só com CPU, cada foto leva bem mais tempo.
+
+**Perguntas (feitas em 23/10, ao escrever as specs):**
+1. Onde rodam a API e o modelo na versão de produção que a banca vai acessar?
+2. Alguém do time tem máquina com GPU NVIDIA de 8 GB ou mais?
+
+**Resposta:**
+1. Máquina do time + túnel: frontend na Netlify; API, harness, modelos e banco num computador do time, em Docker, exposto por Cloudflare Tunnel (HTTPS).
+2. Não / não sei. Os modelos rodam em CPU (modelos pequenos), salvo se aparecer uma GPU.
