@@ -111,7 +111,7 @@
 
 ## D16 — O que entra no caminho da demo
 
-**Contexto *(leitura minha)*:** o escopo do regional tem a plataforma, 7 agentes, 4 bases e 6 conjuntos de avaliação. Não proponho cortar nada; proponho **ordenar**. A spec marcaria cada item como **P0 (a demo não acontece sem ele)** ou **P1 (se der tempo até a entrega)**.
+**Contexto *(leitura minha)*:** o escopo do regional tem a plataforma, o harness agêntico com vários componentes, 4 bases e 6 conjuntos de avaliação. Não proponho cortar nada; proponho **ordenar**. A spec marcaria cada item como **P0 (a demo não acontece sem ele)** ou **P1 (se der tempo até a entrega)**.
 
 Proposta, seguindo o roteiro da demo do plano (foto → lista → alerta → áudio → escalonamento):
 
@@ -152,7 +152,7 @@ Também há uma divergência interna no plano: o **aviso de estoque** aparece na
 
 ## D12 — Equipe (3 pessoas)
 
-**Contexto:** proposta de divisão em [`divisao.md`](divisao.md): **A — Plataforma** (frontend + API), **B — Agentes** (LLM, voz), **C — Dados e avaliação** (farmacovigilância + harness). O plano sugeria 4 papéis; o quarto (entrevistas, BMC, pitch) ficou sem dono.
+**Contexto:** proposta de divisão em [`divisao.md`](divisao.md): **A — Plataforma** (frontend + API), **B — Harness agêntico** (modelo, percepção, loop, ferramentas, guardrails, voz), **C — Dados e avaliação** (ferramentas de dados + avaliação). O plano sugeria 4 papéis; o quarto (entrevistas, BMC, pitch) ficou sem dono.
 
 **Perguntas:**
 1. Quem é A, B e C? Qual a experiência de cada um (Python, JS/TS, React, infra)?
@@ -229,14 +229,33 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 
 ---
 
-## D5 — Orquestração dos agentes
+## D5 — Como construir o loop do harness
+
+**Contexto:** o Orquestrador é o loop de decisão do harness (visão §2.1): recebe as observações, escolhe a ferramenta, observa o resultado e responde.
 
 | Opção | Comentário |
 |---|---|
-| **A. Pipeline em código** | Cada agente é um módulo com contrato de entrada e saída tipado; o LLM usa tool use onde precisa. Menos dependências, mais fácil de testar |
-| **B. LangGraph (ou similar)** | Grafo explícito, bom para mostrar na banca; mais curva no prazo atual |
+| **A. Loop próprio em Python com tool use do LLM** | O modelo recebe o contexto e a lista de ferramentas e decide qual chamar. Fluxos críticos (confirmação, 192, Auditor) ficam fixos em código, fora da escolha do modelo. Poucas dependências, fácil de entender e testar |
+| **B. LangGraph (ou similar)** | Grafo explícito, bom para mostrar na banca; mais curva de aprendizado no prazo atual |
+| **C. SDK de agentes do provedor** (ex.: Claude Agent SDK) | Loop e ferramentas prontos; menos controle sobre os guardrails fixos e mais acoplamento ao provedor |
 
-**Recomendação:** A.
+**Recomendação:** A. Cada componente do harness vira um módulo com contrato tipado, e o diagrama da visão §2.1 cumpre o papel visual na banca.
+
+**Resposta:**
+
+---
+
+## D21 — Regras do harness agêntico
+
+**Contexto:** o harness define o que o modelo pode perceber, decidir e fazer (visão §2.1). Estas regras entram na spec da frente `harness`.
+
+**Perguntas:**
+1. **Limite de passos:** quantas ferramentas o modelo pode chamar por mensagem antes de parar e responder? (Evita loop infinito e custo alto.)
+2. **Ações que exigem confirmação da cuidadora:** sugestão — `salvar_lista_confirmada` e qualquer mudança no cronograma. `registrar_dose` e `registrar_sintoma` podem ser diretas.
+3. **O que o modelo nunca decide sozinho:** sugestão — sinal de alarme (regra fixa → 192), fatos clínicos (só vêm das ferramentas de C) e a liberação da saída (passa sempre pelo Auditor).
+4. **Registro de passos:** guardamos cada observação, ferramenta chamada, resultado e bloqueio do Auditor? Ajuda a depurar, alimenta a avaliação e mostra o harness funcionando na banca. Contém dado sensível, então fica só no servidor.
+
+**Recomendação:** 1 — até 5 chamadas por mensagem. 2 e 3 — como sugerido. 4 — sim, como P1.
 
 **Resposta:**
 
@@ -264,7 +283,7 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 **Perguntas:**
 1. Quem define a lista dos **~50 remédios** do Normalizador e os **~15–20 da demo**? O farmacêutico, se houver; senão, partimos do CBMPI e da literatura.
 2. De onde vem cada linha da tabela curada? Sugestão: consulta manual a DDInter/DrugBank, bula e CBMPI, registrando a fonte em cada linha.
-3. *(leitura minha)* **Evitar a avaliação circular:** se os 30 pares do harness vierem da mesma fonte que a tabela, o recall dá 100% sem provar nada. Sugestão: quem monta os pares de teste (o farmacêutico ou outra pessoa) não é quem montou a tabela, e os pares incluem casos negativos e casos fora da tabela.
+3. *(leitura minha)* **Evitar a avaliação circular:** se os 30 pares da avaliação vierem da mesma fonte que a tabela, o recall dá 100% sem provar nada. Sugestão: quem monta os pares de teste (o farmacêutico ou outra pessoa) não é quem montou a tabela, e os pares incluem casos negativos e casos fora da tabela.
 
 **Resposta:**
 
@@ -302,13 +321,13 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 |---|---|---|---|
 | `frontend` | Plataforma da cuidadora; na final, painel do profissional | A | Regional + final |
 | `backend` | API, contas, banco, arquivos, agendador de lembretes, geração de PDF | A | Regional |
-| `agentes` | Orquestrador, Leitor, Diário/Escalonador, Auditor; cliente do LLM; voz | B | Regional |
-| `dados` | Normalizador (Anvisa/CMED), Farmacovigilante (interações, duplicidade, CBMPI, bulas), sinais de alarme | C | Regional |
-| `harness` | Os 6 conjuntos de avaliação e o relatório de métricas | C | Regional |
+| `harness` | Harness agêntico: percepção (Leitor, STT), memória em uso, loop do Orquestrador, registro de ferramentas, Diário/Escalonador, guardrails (regras fixas, confirmação, Auditor), cliente do LLM, TTS | B | Regional |
+| `dados` | Ferramentas de dados: Normalizador (Anvisa/CMED), Farmacovigilante (no regional: mesmo princípio ativo + tabela curada), regras de gravidade e sinais de alarme | C | Regional |
+| `avaliacao` | Os conjuntos de avaliação e o relatório de métricas | C | Regional |
 | `negocio` *(opcional)* | Entrevistas, BMC, pitch, relatórios quinzenais | em aberto (D12) | Contínuo |
 
 **Perguntas:**
-1. Concorda com as frentes e os nomes? (`agentes` e `dados` poderiam ficar dentro de `backend`.)
+1. Concorda com as frentes e os nomes? (`harness` e `dados` poderiam ficar dentro de `backend`.)
 2. Quer a frente `negocio` em `specs/`, ou só as técnicas?
 
 **Resposta:**
@@ -330,7 +349,7 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 
 ## D14 — Dados de teste e LGPD
 
-**Contexto:** no regional, o harness precisa de 20 fotos de caixas (50 na final), fotos de receitas físicas (D19), 10 PDFs, 30 pares, 20 relatos e 20 tentativas.
+**Contexto:** no regional, a avaliação precisa de 20 fotos de caixas (50 na final), fotos de receitas físicas (D19), 10 PDFs, 30 pares, 20 relatos e 20 tentativas.
 
 **Perguntas:**
 1. O que já existe desses conjuntos?
@@ -338,3 +357,9 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 3. Nos testes com cuidadoras, a tela de consentimento da plataforma já basta, ou usamos também um termo à parte?
 
 **Resposta:**
+1. Não existe nada desse conjunto ainda.
+2. Sim, ficam de fora do Git.
+3. Podemos fazer só a tela de consentimento para a etapa regional.
+Acho importante dizer aqui que talvez não consigamos trazer tudo que a etapa de harness pede, já que estamos muito próximos da data do evento.
+
+> *Nota (23/10):* nesta resposta, "harness" está no sentido antigo, de **avaliação**. Pela nova nomenclatura (visão §5), a frase se refere aos conjuntos de avaliação. Isso conversa com a D16, que define o que é P0 e o que é P1 na avaliação.

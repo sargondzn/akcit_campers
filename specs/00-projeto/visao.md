@@ -41,34 +41,61 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 
 ### 2.1 Arquitetura (escopo para o regional)
 
+O sistema tem três camadas: a **plataforma** (o que a cuidadora vê), o **harness agêntico** (o que transforma o modelo em agente) e as **ferramentas de dados** (os fatos clínicos determinísticos).
+
 ```
-        Plataforma Seriema (web/app — formato em D1)
-        conversa com o agente · foto da receita/caixa e upload de PDF · gravação de áudio · notificações
+  Plataforma Seriema (PWA, mobile-first)
+  conversa · foto da receita/caixa · PDF · gravação de áudio · notificações
                           │
-                       [API]  ← autenticação, banco, arquivos
+                       [API]  ← contas, banco, arquivos, agendador
                           │
-                 [Orquestrador / Conversa]  ← memória: perfil do idoso + lista de remédios versionada
-                          │
-   ┌──────────────┬───────┴─────────┬──────────────────┬───────────────────┐
-   ▼              ▼                 ▼                  ▼                   ▼
-[Leitor]     [Normalizador]   [Farmacovigilante]   [Rotina]          [Diário + Escalonador]
-   │
-   └──→ confirmação humana obrigatória antes de virar cronograma
-                          │
-                    [Auditor]  confere toda saída antes de ela chegar à cuidadora
+ ┌──────────────────────── HARNESS AGÊNTICO ─────────────────────────┐
+ │                                                                    │
+ │  PERCEPÇÃO            MEMÓRIA E ESTADO            MODELO (LLM)     │
+ │  foto/PDF → Leitor    perfil do idoso             raciocina e      │
+ │  áudio → STT          lista de remédios versionada  escolhe a      │
+ │  estado do banco      histórico da conversa         próxima ação   │
+ │  eventos (lembrete)   pendências (itens não confirmados)           │
+ │                                │                                   │
+ │                    LOOP DE DECISÃO (Orquestrador)                  │
+ │          observa → decide → chama ferramenta → observa → responde  │
+ │                                │                                   │
+ │  FERRAMENTAS (ações)                                               │
+ │  normalizar · checar_lista · avaliar_gravidade   ← dados (C)       │
+ │  salvar_lista_confirmada · agendar_lembrete · registrar_dose       │
+ │  registrar_sintoma · gerar_resumo · escalar      ← API (A)         │
+ │                                │                                   │
+ │  GUARDRAILS                                                        │
+ │  regras fixas antes do modelo (192) · confirmação humana para      │
+ │  ações que mudam a lista · Auditor em toda saída                   │
+ └────────────────────────────────────────────────────────────────────┘
 ```
 
-| Peça | O que faz | Tipo |
-|---|---|---|
-| **Plataforma** | Interface da cuidadora: conversa, foto da receita ou da caixa, envio de PDF, gravação de áudio, lista de remédios, cronograma, diário, resumo | Frontend próprio |
-| **API** | Contas, sessões, arquivos, banco; expõe o agente para a plataforma | Backend próprio |
-| **Orquestrador** | Conduz a conversa; guarda o perfil do idoso e a lista de remédios versionada | LLM + estado |
-| **Leitor** | Lê foto de receita física (impressa ou à mão), foto de caixa e PDF de receita digital | LLM com visão |
-| **Normalizador** | Nome comercial → princípio ativo (Anvisa/CMED) | Determinístico |
-| **Farmacovigilante** | **Regional:** mesmo princípio ativo em nomes diferentes + tabela curada à mão (interações, duplicidade de classe, CBMPI) para os remédios da demo. **Final:** bases completas, Beers, RAG em bulas | Ferramentas determinísticas |
-| **Rotina** | Cronograma, lembrete por notificação, confirmação de dose | Determinístico |
-| **Diário + Escalonador** | Áudio → sintoma estruturado → regras de gravidade → 192 ou resumo para farmacêutico/ESF/consulta | STT + LLM + regras fixas |
-| **Auditor** | Bloqueia saídas que citam remédio fora da lista, contêm frase proibida ou não citam fonte | Verificador independente |
+#### O que é o harness agêntico
+
+**Harness** é tudo o que envolve o modelo para que ele **perceba o ambiente, tome decisões e realize ações**, deixando de ser apenas um gerador de texto. O modelo sozinho só responde a um texto. Com o harness, ele vê a foto da receita, lembra o que o idoso toma, consulta a base de interações, agenda o lembrete e decide quando escalar, sempre dentro de regras que ele não consegue furar.
+
+> Nas referências em `docs/`, essas peças aparecem como "agentes" (Leitor, Orquestrador, Diário, Auditor...). Aqui elas são **componentes de um único harness**. O argumento do plano para a banca continua valendo: cada componente tem entrada e saída próprias, e o Auditor é um verificador independente.
+
+| Camada do harness | Componente | O que faz | Tipo | Dono |
+|---|---|---|---|---|
+| **Percepção** | **Leitor** | Foto de receita física (impressa ou à mão), foto de caixa e PDF → itens estruturados com confiança | LLM com visão | B |
+| | **Escuta** | Áudio da cuidadora → texto (STT) | Voz | B |
+| | **Contexto** | Lê do banco o perfil, a lista atual, as doses e o diário antes de cada decisão | Leitura de estado | B (sobre funções de A) |
+| **Memória e estado** | **Memória** | Perfil do idoso, lista de remédios versionada, histórico da conversa, pendências | Banco | A (schema) + B (uso) |
+| **Decisão** | **Orquestrador** | Loop: recebe as observações, decide a próxima ação, chama ferramentas, observa o resultado e responde | LLM + tool use | B |
+| **Ações (ferramentas)** | **Normalizador** | Nome comercial → princípio ativo (Anvisa/CMED) | Determinístico | C |
+| | **Farmacovigilante** | **Regional:** mesmo princípio ativo em nomes diferentes + tabela curada (interações, duplicidade de classe, CBMPI). **Final:** bases completas, Beers, RAG em bulas | Determinístico | C |
+| | **Regras de gravidade** | Sintoma estruturado → conduta (192, 24h, observar) | Determinístico | C |
+| | **Rotina** | Salvar lista confirmada, montar cronograma, agendar lembrete, registrar dose | Determinístico | A (API) |
+| | **Diário + Escalonador** | Registrar sintoma, perguntar o que falta, gerar o resumo e escalar | LLM + regras | B |
+| | **Fala** | Texto do lembrete → áudio (TTS) | Voz | B |
+| **Guardrails** | **Regras fixas** | Sinal de alarme vai para "ligue 192" sem passar pelo modelo | Determinístico | B + C |
+| | **Confirmação humana** | Ações que mudam a lista ou o cronograma só valem depois do "confirmo" da cuidadora | Fluxo fixo | B |
+| | **Auditor** | Bloqueia saída com remédio fora da lista, frase proibida ou fato clínico sem fonte | Verificador independente | B |
+| **Observabilidade** *(proposta, D21)* | **Registro de passos** | Guarda cada observação, ferramenta chamada, resultado e bloqueio do Auditor | Log | B |
+
+Fora do harness ficam a **plataforma e a API** (Pessoa A) e a **avaliação** (Pessoa C), que mede o harness de fora.
 
 ### 2.2 MVP (regional) × evolução (final)
 
@@ -91,7 +118,9 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 5. Na dúvida, chama um humano: se a leitura vier com confiança baixa, o agente pede outra foto ou encaminha ao farmacêutico.
 6. LGPD: consentimento específico (registrado na própria plataforma), dados mínimos, nada compartilhado com a operadora para fins de preço.
 
-### 2.4 Como medimos (harness)
+### 2.4 Como medimos (avaliação)
+
+A avaliação mede o harness **de fora**, com conjuntos de casos e metas. É feita por quem não construiu o harness (Pessoa C).
 
 | O que | Conjunto | Meta (regional) |
 |---|---|---|
@@ -178,6 +207,7 @@ Características que a área da cuidadora precisa ter (detalhes e decisões na D
 
 | Data | Mudança (pedida pelo usuário) | Motivo | Partes do plano afetadas |
 |---|---|---|---|
+| 23/10/2026 | **Nomenclatura: "harness" passa a significar harness agêntico.** É tudo o que envolve o modelo para ele perceber, decidir e agir: percepção, memória, loop de decisão, ferramentas, guardrails e registro de passos (§2.1). A antiga frente "harness" (testes e métricas) passa a se chamar **avaliação**, e a frente "agentes" passa a se chamar **harness**. | Alinhar o termo ao conceito de harness agêntico e descrever melhor a parte do agente | Nomes de frentes e pastas, divisão do time, checklist. As referências em `docs/` falam em "agentes", que aqui são componentes do harness. |
 | 22/10/2026 | **Plataforma mobile-first**: a área da cuidadora é desenhada primeiro para o celular; o painel do profissional (final), para o computador. Web e mobile têm características próprias (§2.5). Formato PWA confirmado na D1. | O uso será majoritariamente no celular | Nenhuma parte do plano contradiz; detalha a plataforma própria. |
 | 22/10/2026 | **Conjunto de fotos de caixas reduzido de 50 para 20 no regional.** As 50 fotos ficam para a final. | Juntar 50 fotos é difícil na etapa atual; a foto da receita física já é a entrada principal | §4.5 do plano (avaliação), Parte 7 (meta de 50 fotos em 18/10). |
 | 22/10/2026 | **Farmacovigilância reduzida no regional.** Fica a checagem de mesmo princípio ativo e uma tabela curada à mão (interações, duplicidade de classe, CBMPI) para os remédios da demo. Base licenciada, conversão de nomes em escala, CBMPI completo + Beers, RAG em bulas e efeito adverso × sintoma vão para a final. | Tirar do MVP a complexidade de dados (licença, conversão de nomes, bulas) sem perder o alerta da demo | §4.3 e §4.7 do plano (checagem), §4.5 (avaliação de pares), Parte 7 (dados de 18/10). Detalhes em [`escopo-por-fase.md`](escopo-por-fase.md). |

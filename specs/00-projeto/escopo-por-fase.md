@@ -19,7 +19,7 @@ Datas: regional em **24/10 (Goiânia)** ou **31/10 (Online)**, conforme a D11. F
 
 ## 2. Regional — o que precisamos concluir
 
-Donos: **A** (Plataforma), **B** (Agentes), **C** (Dados e avaliação). As tarefas detalhadas estão no [`checklist.md`](checklist.md).
+Donos: **A** (Plataforma), **B** (Harness agêntico), **C** (Dados e avaliação). As tarefas detalhadas estão no [`checklist.md`](checklist.md).
 
 ### 2.1 Funcionalidades
 
@@ -34,9 +34,10 @@ Donos: **A** (Plataforma), **B** (Agentes), **C** (Dados e avaliação). As tare
 | **Rotina** | Cronograma; lembrete com texto e áudio disparado na hora (demo); confirmação de dose | A + B (voz) | P0 |
 | **Diário e escalonamento** | Áudio → sintoma estruturado → regras de gravidade → "ligue 192" ou resumo em PDF para consulta / farmacêutico | B + C (regras) | P0 |
 | **Auditor e guardrails** | Bloqueio de frases proibidas, de remédio fora da lista e de fato clínico sem fonte | B | P0 |
-| **Conversa** | Orquestrador com estado e roteamento entre os agentes | B | P0 |
+| **Harness agêntico** | Loop do Orquestrador (observa → decide → chama ferramenta → responde), registro de ferramentas, contexto do banco a cada decisão | B | P0 |
+| | Registro de passos do harness (D21) | B | P1 |
 
-### 2.2 Avaliação (harness)
+### 2.2 Avaliação
 
 | Conjunto | Dono | Prioridade |
 |---|---|---|

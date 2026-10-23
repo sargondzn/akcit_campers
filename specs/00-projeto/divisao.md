@@ -12,19 +12,21 @@ Cada pessoa é **dona de um pedaço do sistema**, com pastas próprias no códig
 
 ## 2. Quem faz o quê
 
-| | **Pessoa A — Plataforma** | **Pessoa B — Agentes** | **Pessoa C — Dados e avaliação** |
+| | **Pessoa A — Plataforma** | **Pessoa B — Harness agêntico** | **Pessoa C — Dados e avaliação** |
 |---|---|---|---|
-| **Frentes em `specs/`** | `frontend`, `backend` | `agentes` | `dados`, `harness` |
-| **É dona de** | Interface da cuidadora, API, contas, banco, arquivos, agendador de lembretes, geração do PDF, deploy | Orquestrador, Leitor, Diário + Escalonador, Auditor, cliente do LLM, voz (STT/TTS) | Normalizador, Farmacovigilante (no regional: mesmo princípio ativo + tabela curada), regras de gravidade e sinais de alarme, harness de avaliação |
-| **Perfil ideal** | JS/TS + React, um pouco de Python; **noção de desenvolvimento mobile** (ver abaixo) | Python + LLM | Python + dados (planilhas, ETL); gosto por curadoria |
-| **Entrega para os outros** | Schema do banco e funções de acesso (para B); endpoint que chama o agente | `processar_mensagem` (para A); conteúdo do resumo (para A); Leitor e Auditor chamáveis (para C) | `normalizar`, `checar_lista`, `avaliar_gravidade` (para B); relatório de métricas (para o pitch) |
-| **Trabalha com stub de** | Agente (respostas falsas) | Funções de dados (respostas falsas); banco em memória | Nenhum: suas funções são puras e testáveis sozinhas |
+| **Frentes em `specs/`** | `frontend`, `backend` | `harness` | `dados`, `avaliacao` |
+| **É dona de** | Interface da cuidadora, API, contas, banco, arquivos, agendador de lembretes, geração do PDF, deploy | Tudo o que transforma o modelo em agente ([`visao.md` §2.1](visao.md)): percepção (Leitor, STT), memória em uso, loop de decisão (Orquestrador), registro das ferramentas, Diário + Escalonador, guardrails (regras fixas, confirmação humana, Auditor), cliente do LLM, voz (TTS), registro de passos | Ferramentas de dados que o harness chama (Normalizador, Farmacovigilante, regras de gravidade e sinais de alarme) e a **avaliação** do harness |
+| **Perfil ideal** | JS/TS + React, um pouco de Python; **noção de desenvolvimento mobile** (ver abaixo) | Python + LLM (tool use, saída estruturada, prompts) | Python + dados (planilhas, ETL); gosto por curadoria e testes |
+| **Entrega para os outros** | Schema do banco, funções de acesso e ações da API usadas como ferramentas (para B); endpoint que chama o harness | `processar_mensagem` (para A); conteúdo do resumo (para A); componentes chamáveis para a avaliação (para C) | `normalizar`, `checar_lista`, `avaliar_gravidade` (para B); relatório de métricas (para o pitch) |
+| **Trabalha com stub de** | Harness (respostas falsas) | Ferramentas de dados (respostas falsas); banco em memória | Nenhum: suas funções são puras e testáveis sozinhas |
+
+**O que é o harness agêntico (Pessoa B):** é tudo o que envolve o modelo para ele **perceber o ambiente, decidir e agir**, deixando de ser só um gerador de texto. A Pessoa B não escreve "um prompt": ela constrói o loop, define quais ferramentas o modelo pode chamar e com quais permissões, cuida da memória que ele enxerga e coloca os guardrails que ele não consegue furar. As ferramentas de dados (C) e as ações da API (A) são **plugadas** no harness pelos contratos.
 
 **O que a Pessoa A precisa ter em mente:** a plataforma será usada principalmente no **celular**. A área da cuidadora é desenhada primeiro para o celular, e o painel do profissional (final) primeiro para o computador. Web e mobile têm características próprias: toque com uma mão, câmera, gravação de áudio, rede instável, teclado virtual, instalação como PWA e teste em aparelho real. A lista completa está em [`visao.md` §2.5](visao.md), e as decisões na D20.
 
-**Por que a avaliação fica com C:** quem mede não é quem construiu o Leitor e o Auditor. Isso é o verificador independente que a banca valoriza.
+**Por que a avaliação fica com C:** quem mede o harness não é quem o construiu. Isso é o verificador independente que a banca valoriza.
 
-**Por que a voz fica com B:** a voz é ferramenta do agente (o Diário transcreve, a Rotina fala). A plataforma só grava e toca o áudio. Isso também alivia a Pessoa A, que tem a frente mais larga.
+**Por que a voz fica com B:** a voz faz parte do harness: o STT é percepção (o Diário escuta) e o TTS é ação (o lembrete fala). A plataforma só grava e toca o áudio. Isso também alivia a Pessoa A, que tem a frente mais larga.
 
 ### Tarefas compartilhadas (todos)
 
@@ -46,8 +48,8 @@ Ficam em `contratos/` no código e são detalhados em `00-projeto/spec.md`. **Mu
 | C3 | B → C | `checar_lista(princípios) → alertas com fonte` | Interação, duplicidade, CBMPI |
 | C4 | B → C | `avaliar_gravidade(sintoma) → conduta` | "queda + batida na cabeça" → 192 |
 | C5 | B → A | `Resumo` (estrutura de dados) → PDF | Remédios, doses perdidas, sintomas, perguntas para o médico |
-| C6 | A → B | Acesso ao banco (perfil, lista versionada, doses, diário) | Funções de leitura e escrita; B não mexe no schema |
-| C7 | C → B | Harness chama o Leitor, o Auditor e o Escalonador | Mesmas funções usadas pela plataforma |
+| C6 | A → B | Acesso ao banco e ações da API usadas como ferramentas | Leitura do perfil, lista, doses e diário; `salvar_lista_confirmada`, `agendar_lembrete`, `registrar_dose`. B não mexe no schema |
+| C7 | C → B | A avaliação chama o Leitor, o Auditor, o Escalonador e o harness inteiro | Mesmas funções usadas pela plataforma |
 
 ---
 
@@ -56,9 +58,9 @@ Ficam em `contratos/` no código e são detalhados em `00-projeto/spec.md`. **Mu
 ```
 plataforma/frontend/   ← A
 plataforma/api/        ← A
-agentes/               ← B
+harness/               ← B (harness agêntico)
 dados/                 ← C
-harness/               ← C
+avaliacao/             ← C
 contratos/             ← todos (só com acordo)
 ```
 
@@ -71,7 +73,7 @@ A estrutura final depende de D2, D10 e D18.
 1. **Juntos:** responder a discussão → aprovar a spec do 00-projeto e os contratos.
 2. **Em paralelo, cada um com stub:**
    - A: login → conversa → upload → lista.
-   - B: Leitor → confirmação → Orquestrador → Diário/Escalonador → Auditor.
-   - C: lista dos ~50 → Normalizador → Farmacovigilante → regras de gravidade → harness.
+   - B: loop do Orquestrador com ferramentas falsas → Leitor → confirmação → Diário/Escalonador → Auditor.
+   - C: lista dos ~50 → Normalizador → Farmacovigilante → regras de gravidade → avaliação.
 3. **Integração:** trocar os stubs pelas peças reais, uma de cada vez: C → B, depois B → A.
-4. **Juntos:** rodar o harness, congelar o código, ensaiar a demo.
+4. **Juntos:** rodar a avaliação, congelar o código, ensaiar a demo.
