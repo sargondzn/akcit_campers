@@ -153,14 +153,14 @@ def checar_lista(itens: list[ItemParaChecar]) -> list[Alerta]:
         if len(ids) > 1:
             alertas.append(Alerta(tipo="duplicidade_principio", item_ids=ids, principios=[p], gravidade="alta",
                                   descricao=f"O mesmo remédio ({p}) aparece mais de uma vez na lista, com nomes diferentes",
-                                  fonte=FONTE_STUB))
+                                  fonte=FONTE_STUB, conferencia="llm"))
     principios = sorted(por_principio)
     for a, b in combinations(principios, 2):
         par = tuple(sorted((a, b)))
         if par in INTERACOES:
             grav, desc = INTERACOES[par]
             alertas.append(Alerta(tipo="interacao", item_ids=por_principio[a] + por_principio[b], principios=list(par),
-                                  gravidade=grav, descricao=desc, fonte=FONTE_STUB))
+                                  gravidade=grav, descricao=desc, fonte=FONTE_STUB, conferencia="llm"))
     por_classe: dict[str, list[str]] = {}
     for p in principios:
         if p in REMEDIOS:
@@ -172,11 +172,11 @@ def checar_lista(itens: list[ItemParaChecar]) -> list[Alerta]:
                 ids = [i for p in ps for i in por_principio[p]]
                 alertas.append(Alerta(tipo="duplicidade_classe", item_ids=ids, principios=ps, gravidade="moderada",
                                       descricao="Dois remédios do mesmo grupo, possivelmente de médicos diferentes",
-                                      fonte=FONTE_STUB))
+                                      fonte=FONTE_STUB, conferencia="llm"))
     for p in principios:
         if p in CBMPI:
             alertas.append(Alerta(tipo="cbmpi", item_ids=por_principio[p], principios=[p], gravidade=None,
-                                  descricao=CBMPI[p], fonte=FONTE_STUB))
+                                  descricao=CBMPI[p], fonte=FONTE_STUB, conferencia="llm"))
     ordem = {"alta": 0, "moderada": 1, "baixa": 2, None: 3}
     return sorted(alertas, key=lambda a: ordem[a.gravidade])
 
@@ -234,5 +234,5 @@ def info_remedio(principio_ativo: str) -> InfoRemedio | None:
     return InfoRemedio(
         principio_ativo=p, para_que_serve=PARA_QUE_SERVE[p], farmacia_popular=fp,
         farmacia_popular_detalhe=FARMACIA_POPULAR.get(p), documentos_farmacia_popular=DOCUMENTOS_FP if fp else [],
-        tipo_receita=tipo, validade_receita_dias=VALIDADE_DIAS[tipo], fonte=FONTE_STUB,
+        tipo_receita=tipo, validade_receita_dias=VALIDADE_DIAS[tipo], fonte=FONTE_STUB, conferencia="llm",
     )

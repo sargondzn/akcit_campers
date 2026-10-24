@@ -1,3 +1,3 @@
 import os
 
-os.environ["HARNESS_DADOS_STUB"] = "1"   # testes sempre com os stubs de C2–C4 e C8
+os.environ.setdefault("HARNESS_DADOS_STUB", "1")   # padrão: stubs; HARNESS_DADOS_STUB=0 testa com dados/ real

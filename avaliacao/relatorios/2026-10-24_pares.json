@@ -1,8 +1,8 @@
 {
   "conjunto": "pares",
   "prioridade": "P0",
-  "data": "2026-10-24T13:31:07",
-  "commit": "30c4811",
+  "data": "2026-10-24T14:05:51",
+  "commit": "d42eb83",
   "modelos": {
     "modelo": "nenhum (checar_lista é determinístico)"
   },

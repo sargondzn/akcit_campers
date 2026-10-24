@@ -21,3 +21,7 @@ piper-tts==1.8.0
 
 # Testes (spec §14)
 pytest==9.1.1
+
+# Ferramentas de dados (dados/, Pessoa C), que o harness chama (C2–C4)
+rapidfuzz==3.14.6
+openpyxl==3.1.5    # ETL da CMED (dados/etl) e seus testes

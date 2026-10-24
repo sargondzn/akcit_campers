@@ -1,7 +1,7 @@
 """Tipos dos contratos C1–C8 (00-projeto/spec §5), do jeito que o harness usa.
 
-Provisório: quando A criar a pasta `contratos/` (00-projeto §4), este módulo passa a
-reexportar de lá. Os nomes e campos seguem a spec; mudança aqui só com mudança na spec.
+Os tipos de C2–C4 já vêm de `contratos/dados.py` (ADR 0001). Os de C1, C5–C8 ficam aqui até
+irem para `contratos/` com o acordo dos três. Mudança aqui só com mudança na spec.
 """
 
 from __future__ import annotations
@@ -50,41 +50,11 @@ class Mudanca(BaseModel):
     decisao: Literal["continua", "medico_tirou", "nao_sei"] | None = None
 
 
-class InfoRemedio(BaseModel):
-    principio_ativo: str
-    para_que_serve: str
-    farmacia_popular: bool = False
-    farmacia_popular_detalhe: str | None = None
-    documentos_farmacia_popular: list[str] = Field(default_factory=list)
-    tipo_receita: Literal["simples", "controle_especial", "antimicrobiano"] | None = None
-    validade_receita_dias: int | None = None
-    fonte: str
-    conferencia: Literal["llm", "profissional"] = "llm"
-
-
-class Alerta(BaseModel):
-    tipo: Literal["interacao", "duplicidade_principio", "duplicidade_classe", "cbmpi"]
-    item_ids: list[str]
-    principios: list[str]
-    gravidade: Literal["alta", "moderada", "baixa"] | None = None
-    descricao: str
-    fonte: str
-    conferencia: Literal["llm", "profissional"] = "llm"
-
-
-class SintomaEstruturado(BaseModel):
-    descricao: str
-    sintomas: list[str] = Field(default_factory=list)
-    inicio: str | None = None
-    intensidade: Literal["leve", "moderada", "forte"] | None = None
-    sinais: dict[str, bool] = Field(default_factory=dict)
-
-
-class Conduta(BaseModel):
-    nivel: Literal["ligue_192", "atendimento_24h", "observar"]
-    regra_id: str
-    motivo: str
-    fonte: str
+# Alerta, SintomaEstruturado, Conduta, ResultadoNormalizacao, ItemParaChecar (C2–C4) e InfoRemedio (C8)
+# vêm de `contratos/dados.py` (ADR 0001), para o harness e `dados/` usarem as mesmas classes.
+from contratos.dados import (  # noqa: E402
+    Alerta, Conduta, InfoRemedio, ItemParaChecar, ResultadoNormalizacao, SintomaEstruturado,
+)
 
 
 # ---------- C1 — Plataforma → harness ----------
@@ -147,23 +117,6 @@ class EventoAgendado(BaseModel):
 class RespostaHarness(BaseModel):
     mensagens: list[MensagemSaida]
     estado: Literal["ok", "aguardando_confirmacao", "erro"] = "ok"
-
-
-# ---------- C2–C4, C8 — Harness → dados ----------
-
-class ResultadoNormalizacao(BaseModel):
-    entrada: str
-    encontrado: bool
-    principio_ativo: list[str] = Field(default_factory=list)
-    concentracao: str | None = None
-    nome_comercial: str | None = None
-    candidatos: list[str] = Field(default_factory=list)
-    fonte: str = ""
-
-
-class ItemParaChecar(BaseModel):
-    item_id: str
-    principio_ativo: list[str]
 
 
 # ---------- C5 — Resumo ----------

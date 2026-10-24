@@ -29,6 +29,24 @@ def prompt(nome: str) -> str:
     return (PASTA_PROMPTS / f"{nome}.md").read_text(encoding="utf-8")
 
 
+@lru_cache(maxsize=1)
+def instrucoes_diario() -> str:
+    """Instruções do Diário + o vocabulário que as regras de gravidade de C reconhecem (DA-D4)."""
+    from harness import dados_ponte
+
+    texto = prompt("diario")
+    vocab = dados_ponte.vocabulario_diario()
+    if vocab:
+        texto += (
+            "\n\nUse estes termos sempre que o relato corresponder, porque as regras de gravidade só reconhecem eles:\n"
+            f"- sintomas ('_' vale espaço; termo curto como 'desmai' vale como começo de palavra): {', '.join(vocab['sintomas'])}\n"
+            f"- sinais (só estes, quando presentes): {', '.join(vocab['sinais'])}\n"
+            "Ex.: 'caiu no banheiro' → sintomas ['queda', 'caiu']; 'boca torta e fala enrolada' → sinais "
+            "['rosto_torto', 'fala_enrolada']. Pode acrescentar outros termos simples se nenhum servir."
+        )
+    return texto
+
+
 @dataclass
 class ResultadoConversa:
     texto: str
@@ -108,7 +126,7 @@ class AgentesAgno:
 
     def estruturar_sintoma(self, texto: str, contexto: str, estado: EstadoMensagem) -> SaidaDiario:
         return self._estruturado("diario", "conversa", SaidaDiario, f"{contexto}\n\nRelato da cuidadora: {texto}",
-                                 estado, prompt("diario"))
+                                 estado, instrucoes_diario())
 
     def preparar_perguntas(self, fatos: str, candidatas: list[dict], estado: EstadoMensagem) -> PerguntasConsulta:
         entrada = f"Fatos:\n{fatos}\n\nPerguntas candidatas:\n{json.dumps(candidatas, ensure_ascii=False)}"
@@ -136,7 +154,7 @@ class AgentesAgno:
             )
 
         diario = Agent(name="Diario", role="Organiza relatos de sintoma", model=modelo("conversa"),
-                       instructions=prompt("diario"), additional_context=contexto, output_schema=SaidaDiario,
+                       instructions=instrucoes_diario(), additional_context=contexto, output_schema=SaidaDiario,
                        telemetry=False)
         equipe = Team(
             name="Seri", mode="route", model=modelo("conversa"),

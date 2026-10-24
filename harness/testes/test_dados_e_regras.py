@@ -66,8 +66,10 @@ def test_checar_lista_sem_alertas_quando_nao_ha_risco():
 
 
 def test_avaliar_gravidade_niveis():
-    assert dados.avaliar_gravidade(SintomaEstruturado(descricao="ela desmaiou", sintomas=["desmaio"])).nivel == "atendimento_24h"
-    assert dados.avaliar_gravidade(SintomaEstruturado(descricao="tontura leve", sintomas=["tontura"])).nivel == "observar"
+    # Só o que vale para o stub e para a tabela de C; a regra clínica de cada sintoma é de C.
+    assert dados.avaliar_gravidade(SintomaEstruturado(descricao="ela desmaiou", sintomas=["desmaio"])).nivel != "observar"
+    assert dados.avaliar_gravidade(SintomaEstruturado(descricao="tontura leve", sintomas=["tontura"],
+                                                      intensidade="leve")).nivel == "observar"
     assert dados.avaliar_gravidade(SintomaEstruturado(descricao="caiu e bateu a cabeça", sintomas=["queda"])).nivel == "ligue_192"
 
 

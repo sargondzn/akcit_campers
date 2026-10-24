@@ -142,3 +142,24 @@
 **Recomendação:** verificação diária às **09:00**; véspera da consulta às **18:00** do dia anterior; pós-consulta às **10:00** do dia seguinte. Na demo, todos são disparados na hora (`/demo/evento`, backend §5).
 
 **Resposta:**
+
+---
+
+> **Pergunta aberta em 24/10/2026**, a partir da avaliação com os relatos cegos da rodada 3 (DA-D4, AV-D4). Até a resposta, a spec §9 continua valendo como está.
+
+## HA-D13 — Avaliar a gravidade antes de o Diário perguntar o que falta
+
+**Contexto:** pela spec §9, o Diário primeiro completa o relato (até 2 perguntas: o quê, desde quando, intensidade) e só depois roda `avaliar_gravidade`. Medição em 24/10/2026, com os 125 relatos da rodada 3 (frases que as regras nunca viram), pelo harness completo, com o `dados/` real e o `gpt-6-luna`:
+
+| | Hoje (pergunta antes) | Gravidade antes da pergunta |
+|---|---|---|
+| Alarmes → 192 | **64 de 105 (61%)**: 59 pela regra fixa + 5 pelo Diário | **97 de 105 (92%)** |
+| Frases normais → 192 por engano | 3 de 20 | 4 de 20 |
+
+Dos 41 alarmes perdidos hoje, **40 viraram uma pergunta do Diário** ("desde quando?") em vez do 192. Exemplos: "ficou com a boca torta e a fala enrolada", "parece que tem um saco plástico no rosto dela", "ela não reconhece a filha". Os 8 que continuariam perdidos têm relatos em que o Diário não usou um termo do vocabulário de C (ex.: "dormência" sem o sinal `dormencia_subita`).
+
+**Opções:** (a) avaliar a gravidade sobre o relato parcial **antes** de perguntar: se der 192, manda o 192 na hora; se der 24 h ou observar, segue perguntando e reavalia no fim; (b) manter como está.
+
+**Recomendação:** (a). É a mesma lógica da regra fixa (sinal de alarme não espera), custa uma chamada a mais só quando o relato está incompleto e troca 33 alarmes perdidos por 1 alarme falso a mais.
+
+**Resposta:**

@@ -77,7 +77,7 @@
 
 ## Integração e prova
 
-- [ ] **P0** — Trocar os stubs pelas funções reais de C (inclusive C8)
+- [x] **P0** — Trocar os stubs pelas funções reais de C (inclusive C8) — 24/10: `dados_ponte` usa as 5 funções de `dados/`; tipos de C2–C4 e C8 vêm de `contratos/dados.py`; Diário recebe o vocabulário de `dados.vocabulario`
 - [ ] **P0** — Plugar na API de A (sem stub), com `processar_evento`
 - [x] **P0** — Expor o C7 para a avaliação (com `conciliacao`)
 - [x] **P0** — Testes do §18
@@ -92,4 +92,4 @@
 - **Faster-whisper 1.2.1 × av 19:** a Escuta passa as amostras do WAV direto ao Whisper, sem o decodificador `av` (incompatível).
 - **HA-D5:** o limite de 3 páginas por PDF escaneado e os 60 s por chamada valem, mas o orçamento total de 240 s por mensagem (`orcamento_mensagem_s`) ainda não corta as etapas restantes.
 - **§6.5, passo 4:** o item que continua ilegível depois das duas tentativas fica `nao_confirmado` (fora do cronograma, como pede a spec), mas ainda não passa para `ilegivel` com o aviso "confirme com o farmacêutico".
-- **Pendente de fora:** plugar na API de A (HA-D7), trocar os stubs pelos dados de C, teste de bancada com receitas reais (HA-D2).
+- **Pendente de fora:** plugar na API de A (HA-D7), teste de bancada com receitas reais (HA-D2), julgamento do guardrail por C (AV-D2) e a HA-D13 (gravidade antes da pergunta do Diário).
