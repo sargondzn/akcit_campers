@@ -1,0 +1,4 @@
+tipo_receita,validade_dias,fonte,conferencia
+simples,,prazo legal nacional não confirmado (pesquisa em fontes oficiais ainda em andamento em 24/10/2026); o app não avisa vencimento de receita simples enquanto isso,llm
+controle_especial,30,"Portaria SVS/MS nº 344/1998 (30 dias para a notificação de receita e a receita de controle especial); valor citado de memória do gerador, texto da norma não aberto",llm
+antimicrobiano,10,"RDC Anvisa nº 471/2021 (receita de antimicrobianos válida por 10 dias); valor citado de memória do gerador, texto da norma não aberto",llm

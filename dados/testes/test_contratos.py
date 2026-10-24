@@ -2,7 +2,7 @@
 import inspect
 
 import dados
-from contratos.dados import Conduta, ItemParaChecar, ResultadoNormalizacao, SintomaEstruturado, Alerta
+from contratos.dados import Alerta, Conduta, InfoRemedio, ItemParaChecar, ResultadoNormalizacao, SintomaEstruturado
 
 
 def assinatura(funcao):
@@ -31,5 +31,18 @@ def test_avaliar_gravidade_c4():
     assert [n for n, _ in params] == ["sintoma"]
 
 
-def test_exporta_so_as_quatro():
-    assert sorted(dados.__all__) == ["avaliar_gravidade", "checar_lista", "detectar_alarme", "normalizar"]
+def test_info_remedio_c8():
+    params, retorno = assinatura(dados.info_remedio)
+    assert params == [("principio_ativo", str)] and retorno == (InfoRemedio | None)
+
+
+def test_auxiliares_do_harness():
+    assert dados.texto_normalizado("  Ácido  ACETILSALICÍLICO! ") == "acido acetilsalicilico"
+    nomes = dados.nomes_conhecidos()
+    assert {"losartana", "glifage", "aspirina", "marevan", "acido acetilsalicilico"} <= nomes
+    assert all(n == dados.texto_normalizado(n) for n in nomes)
+
+
+def test_exporta_os_contratos_e_os_auxiliares():
+    assert sorted(dados.__all__) == ["avaliar_gravidade", "checar_lista", "detectar_alarme", "info_remedio",
+                                     "nomes_conhecidos", "normalizar", "texto_normalizado"]

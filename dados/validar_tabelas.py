@@ -12,17 +12,21 @@ from dados.texto import normalizar_texto
 
 TABELAS = Path(__file__).resolve().parent / "tabelas"
 COLUNAS = {
-    "remedios.csv": ["principio_ativo", "nome_comercial", "concentracao", "forma", "registro_anvisa", "fonte"],
+    "remedios.csv": ["principio_ativo", "nome_comercial", "concentracao", "forma", "registro_anvisa", "tipo_receita", "fonte"],
     "sinonimos.csv": ["termo", "principio_ativo"],
     "interacoes.csv": ["principio_a", "principio_b", "gravidade", "descricao", "fonte", "conferencia"],
     "classes.csv": ["principio_ativo", "classe", "duplicidade_relevante", "fonte", "conferencia"],
     "cbmpi.csv": ["principio_ativo", "criterio", "motivo", "fonte", "conferencia"],
     "sinais_alarme.csv": ["regra_id", "padrao", "descricao", "fonte", "conferencia"],
     "regras_gravidade.csv": ["regra_id", "ordem", "condicao", "nivel", "motivo", "fonte", "conferencia"],
+    "indicacoes.csv": ["principio_ativo", "para_que_serve", "fonte", "conferencia"],
+    "farmacia_popular.csv": ["principio_ativo", "concentracao", "indicacao_programa", "gratuito", "documentos", "fonte", "conferencia"],
+    "tipos_receita.csv": ["tipo_receita", "validade_dias", "fonte", "conferencia"],
     "vocabulario.csv": ["tipo", "termo", "definicao", "sinonimos", "exclusoes", "exemplo", "tratamento", "fonte", "conferencia"],
 }
 TIPOS_VOCABULARIO = {"sintoma", "sinal", "intensidade"}
 TRATAMENTOS = {"regra", "alarme", "regra+alarme", "sem_regra"}
+TIPOS_RECEITA = {"simples", "controle_especial", "antimicrobiano"}
 CONFERENCIA = {"llm", "profissional"}
 
 
@@ -106,9 +110,10 @@ def validar() -> list[str]:
         ids.add(l["regra_id"])
 
     erros += _validar_vocabulario(t["vocabulario.csv"], t["regras_gravidade.csv"])
+    erros += _validar_info_remedio(t, conhecidos)
 
     # fonte e conferencia preenchidas em toda linha clínica
-    for nome in ("interacoes.csv", "classes.csv", "cbmpi.csv", "sinais_alarme.csv", "regras_gravidade.csv", "vocabulario.csv"):
+    for nome in ("interacoes.csv", "classes.csv", "cbmpi.csv", "sinais_alarme.csv", "regras_gravidade.csv", "vocabulario.csv", "indicacoes.csv", "farmacia_popular.csv", "tipos_receita.csv"):
         for i, l in enumerate(t[nome], start=2):
             if not l["fonte"].strip():
                 erros.append(f"{nome} linha {i}: fonte vazia")
@@ -176,6 +181,57 @@ def _validar_vocabulario(vocab, regras) -> list[str]:
             erros.append(f"vocabulario.csv: {l['tipo']} {l['termo']!r} está marcado '{l['tratamento']}' e nenhuma regra o usa")
         if not com_regra and chave in usos:
             erros.append(f"vocabulario.csv: {l['tipo']} {l['termo']!r} está marcado '{l['tratamento']}' mas uma regra o usa")
+    return erros
+
+
+def _validar_info_remedio(t, conhecidos) -> list[str]:
+    """Tabelas do C8: indicacoes.csv, farmacia_popular.csv, tipos_receita.csv e a coluna tipo_receita."""
+    erros: list[str] = []
+    isolados = {p for p in conhecidos}  # princípios isolados de remedios.csv
+    usados = {l["tipo_receita"] for l in t["remedios.csv"]}
+    for l in t["remedios.csv"]:
+        if l["tipo_receita"] not in TIPOS_RECEITA:
+            erros.append(f"remedios.csv: tipo_receita inválido em {l['nome_comercial']!r}: {l['tipo_receita']!r}")
+
+    com_indicacao = set()
+    for l in t["indicacoes.csv"]:
+        p = l["principio_ativo"]
+        if p != normalizar_texto(p) or p not in conhecidos:
+            erros.append(f"indicacoes.csv: principio_ativo {p!r} não existe em remedios.csv ou não está normalizado")
+        if p in com_indicacao:
+            erros.append(f"indicacoes.csv: princípio repetido: {p}")
+        com_indicacao.add(p)
+        frase = l["para_que_serve"].strip()
+        if not frase or not frase.split()[0].rstrip(",;.").endswith("r"):
+            erros.append(f"indicacoes.csv: {p}: a frase deve começar com verbo no infinitivo (ex.: 'controlar a pressão alta')")
+        if re.search(r"\d+\s*(mg|mcg|ml|g)\b|\bdoses?\b|\bcomprimidos?\b", frase.lower()):
+            erros.append(f"indicacoes.csv: {p}: a frase não pode citar dose, mg nem comprimido")
+    for p in sorted(isolados - com_indicacao):
+        erros.append(f"indicacoes.csv: {p!r} está em remedios.csv e não tem 'para que serve'")
+
+    for l in t["farmacia_popular.csv"]:
+        p = l["principio_ativo"]
+        if p not in conhecidos:
+            erros.append(f"farmacia_popular.csv: princípio {p!r} não existe em remedios.csv")
+        if l["gratuito"] not in ("sim", "nao"):
+            erros.append(f"farmacia_popular.csv: gratuito inválido em {p}: {l['gratuito']!r}")
+        if not l["concentracao"].strip() or not l["indicacao_programa"].strip():
+            erros.append(f"farmacia_popular.csv: {p}: concentracao e indicacao_programa são obrigatórias")
+        if l["gratuito"] == "sim" and not [d for d in l["documentos"].split(";") if d.strip()]:
+            erros.append(f"farmacia_popular.csv: {p}: remédio gratuito precisa listar os documentos")
+
+    tipos = set()
+    for l in t["tipos_receita.csv"]:
+        if l["tipo_receita"] not in TIPOS_RECEITA:
+            erros.append(f"tipos_receita.csv: tipo inválido: {l['tipo_receita']!r}")
+        if l["tipo_receita"] in tipos:
+            erros.append(f"tipos_receita.csv: tipo repetido: {l['tipo_receita']}")
+        tipos.add(l["tipo_receita"])
+        v = l["validade_dias"].strip()
+        if v and not (v.isdigit() and int(v) > 0):
+            erros.append(f"tipos_receita.csv: validade_dias inválida em {l['tipo_receita']}: {v!r}")
+    for tipo in sorted(usados - tipos):
+        erros.append(f"tipos_receita.csv: o tipo {tipo!r} é usado em remedios.csv e não tem linha")
     return erros
 
 
