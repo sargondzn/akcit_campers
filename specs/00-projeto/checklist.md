@@ -18,7 +18,7 @@
 - [x] Escrever a `spec.md` do 00-projeto, com os contratos C1–C7 (23/10)
 - [x] Criar as frentes `frontend`, `backend`, `harness`, `dados`, `avaliacao` e `negocio` com discussão, spec e checklist (23/10)
 - [x] Resolver D13: `docs/` fica onde está, fora do repositório, com observação no `README.md` (23/10)
-- [ ] **Todos** — Aprovar a `spec.md` do 00-projeto e os contratos C1–C7
+- [ ] **Todos** — Aprovar a `spec.md` do 00-projeto e os contratos C1–C7 (C ✔ 23/10; A e B pendentes)
 - [ ] **Todos** — Ler a spec da própria frente e responder as perguntas da `discussao.md` dela (as que não bloqueiam já têm padrão)
 
 ## Fase 1 — Regional (24/10): o que envolve os três
