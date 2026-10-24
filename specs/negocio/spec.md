@@ -13,8 +13,8 @@ Nenhum material de negócio é entregue ou apresentado sem que **os três** tenh
 
 | Entregável | Conteúdo | Onde fica |
 |---|---|---|
-| **BMC** | O canvas do plano atualizado com as decisões das specs: plataforma própria no lugar do WhatsApp (canais, relacionamento, custos e parcerias), **operadora como primeiro pagador** (D15.3), farmácia como canal e trava regulatória, modelo local (custo de infraestrutura no lugar de custo por chamada de API) | `negocio/bmc.md` (+ imagem ou PDF) |
-| **Pitch de 3 min com demo ao vivo** | Roteiro da demo do plano: foto → lista → alerta → áudio → escalonamento (00-projeto/spec §8). Argumentos da visão §4.2 (teste de remoção, contexto favorável, unit economics ilustrativos). Números do relatório da avaliação | `negocio/pitch/` (slides em PDF + roteiro falado) |
+| **BMC** | O canvas do plano atualizado com as decisões das specs: plataforma própria no lugar do WhatsApp (canais, relacionamento, custos e parcerias), **operadora como primeiro pagador** (D15.3), farmácia como canal e trava regulatória, modelos da API da OpenAI desde 24/10 (custo por chamada, medido pela avaliação, mais a máquina do time para API e voz) | `negocio/bmc.md` (+ imagem ou PDF) |
+| **Pitch de 3 min com demo ao vivo** | Roteiro da demo (00-projeto/spec §8): foto → lista → alerta → para que serve → receita nova com conciliação → áudio → escalonamento → preparo da consulta → aviso de estoque. Argumentos da visão §4.2 (teste de remoção, contexto favorável, unit economics ilustrativos). Números do relatório da avaliação | `negocio/pitch/` (slides em PDF + roteiro falado) |
 | **Vídeo de backup da demo** | O mesmo roteiro gravado em celular real, para o caso de a rede ou a máquina falhar | Fora do Git (pasta compartilhada); link em `negocio/pitch/` |
 | **Documentação do fluxo** | Ponteiro para `specs/` (visão, divisão, specs das frentes) + um diagrama do fluxo da cuidadora | `negocio/fluxo.md` |
 | **Entrevistas** | Meta do plano: 5 a 10 (cuidadoras, farmacêuticos, enfermeiras de ESF). **1 feita** (D11.3). Checar o critério de giro (visão §4.3) | Síntese em `negocio/entrevistas.md`; anotações brutas fora do Git |

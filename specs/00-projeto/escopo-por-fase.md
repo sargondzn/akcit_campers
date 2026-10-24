@@ -2,7 +2,7 @@
 
 > **Para que serve:** deixar claro **o que precisa estar pronto no regional** e **o que fica conscientemente para a final**. Se não está na seção 2, não é trabalho do regional.
 > **Fontes:** [`visao.md`](visao.md) §2.2 e §5, as respostas da [`discussao.md`](discussao.md) e a Parte 7 do plano (`docs/f3_plano_startup_v1.md`, fora do repositório).
-> **Atualizado em:** 23/10/2026.
+> **Atualizado em:** 24/10/2026 (modelos da OpenAI; E1, E2, E4 e E8 no regional).
 
 ---
 
@@ -34,7 +34,12 @@ Donos: **A** (Beatriz), **B** (Caio), **C** (Roberto). As tarefas detalhadas est
 | **Rotina** | Cronograma; lembrete com texto e áudio disparado na hora (demo); confirmação de dose | A + B (voz) | P0 |
 | **Diário e escalonamento** | Áudio → sintoma estruturado → regras de gravidade → "ligue 192" ou resumo em PDF + link | B + C (regras) | P0 |
 | **Auditor e guardrails** | Bloqueio de frases proibidas, de dose, de remédio fora da lista e de fato clínico sem fonte | B | P0 |
-| **Harness agêntico** | Loop do Orquestrador (até 5 ferramentas por mensagem), registro de ferramentas, contexto a cada decisão, modelos open-source locais | B | P0 |
+| **Harness agêntico** | Sistema multiagente em **Agno**: coordenadora + subagentes (Leitor, Intérprete, Rotina, Explicador, Diário, Agenda, Preparador, Farmácia) e fluxos fixos; até 5 ferramentas por mensagem, registro de ferramentas, contexto a cada decisão, **modelos da API da OpenAI** | B | P0 |
+| **E8 — Para que serve** | Frase de uso comum de cada remédio, com fonte, na conversa, na proposta, na tela Remédios e no preparo | B + C (tabela) + A (tela) | P0 |
+| **E1 — Conciliação** | Receita nova × lista: escopo da receita, novo/mantido/alterado/ausente, decisão da cuidadora sobre o ausente | B + A (cartão) | P0 |
+| **E2 — Preparo da consulta** | Registrar consulta; página "Para levar à consulta" na véspera; registro do que o médico disse | B + A (agenda, PDF, eventos) | P0 |
+| **E4 — Remédio nunca falta** | Estoque e aviso de 7 e 2 dias; Farmácia Popular | B + A (estoque, eventos) + C (tabela) | P0 |
+| | Validade da receita e aviso de vencimento | B + C (tabela) | P1 |
 | | Registro de passos (D21) | B | P1 |
 
 ### 2.2 Avaliação
@@ -45,7 +50,8 @@ Donos: **A** (Beatriz), **B** (Caio), **C** (Roberto). As tarefas detalhadas est
 | 20 fotos de caixas | C (fotos: todos) | P0 |
 | 10 fotos de receitas impressas e 20 de manuscritas (D19) | C (receitas: todos) | P0 |
 | 30 pares de interação e duplicidade, conferidos com LLM | C | P0 |
-| 20 tentativas de arrancar dose (guardrail) | C | P0 |
+| 20 tentativas de arrancar dose (guardrail), incluindo 5 de E1 e E8 ("posso tirar o remédio que não veio?") | C | P0 |
+| 10 casos de conciliação (lista antes + receita nova → mudanças esperadas) | C | P1 |
 | 10 PDFs de receita digital | C | P1 |
 | 20 relatos de sintoma, conferidos com LLM | C | P1 |
 
@@ -54,7 +60,7 @@ Donos: **A** (Beatriz), **B** (Caio), **C** (Roberto). As tarefas detalhadas est
 | O que | Dono | Prioridade |
 |---|---|---|
 | GitHub com protótipo, BMC, pitch e documentação do fluxo | Todos (negócio: C) | P0 |
-| Pitch de 3 min com demo ao vivo (foto → lista → alerta → áudio → escalonamento), ensaiado | Todos | P0 |
+| Pitch de 3 min com demo ao vivo (foto → lista → alerta → para que serve → receita nova com conciliação → áudio → escalonamento → preparo da consulta → aviso de estoque), ensaiado | Todos | P0 |
 | Vídeo de backup da demo | Todos | P0 |
 | Entrevistas (1 feita; meta 5 a 10); checar o critério de giro | C | P0 |
 | Revisão de todos os materiais de negócio (D12.3) | A e B | P0 |
@@ -73,7 +79,6 @@ Os donos são sugeridos pela frente de cada um e serão confirmados depois do re
 |---|---|---|
 | **Painel do farmacêutico ou da enfermeira**, com fila de casos, desenhado primeiro para o computador | A | Plano §4.7 |
 | **Código de barras da caixa** como entrada | B | Plano §4.7 |
-| **Aviso de estoque e renovação de receita** | A + B | Plano §4.7; confirmado para a final na D16.2 |
 | **Tendências no diário** ("3 dias de tontura") | B | Plano §4.7 |
 | **Efeito adverso × sintoma relatado** | B + C | Plano §4.7 |
 | **Base de interações completa e licenciada** | C | Mudança de 22/10 |
@@ -83,9 +88,9 @@ Os donos são sugeridos pela frente de cada um e serão confirmados depois do re
 | **Normalizador ampliado** (de ~20 para mais remédios) | C | D16 |
 | **Tabelas clínicas mais completas e revisadas por profissional** | C | D7.2, D15.4 |
 | **Conjunto de caixas de 20 para 50 fotos**; receitas reais em quantidade satisfatória | C (fotos: todos) | Mudança de 22/10; D19.4 |
-| **Loop do harness em LangGraph** | B | D5 |
+| **Equipe da Seri em modo `coordinate`** | B | D5 atualizada, HA-D8 |
+| **E3, E5, E6 e E7** (rede de cuidado, cuidar de quem cuida, dúvidas de administração, padrões no tempo), se aprovadas depois | Todos | D23 |
 | **PostgreSQL + armazenamento de objetos + fila** | A | D6 |
-| **API comercial de LLM (OpenAI ou Anthropic)**, se o time conseguir acesso | B | D3 |
 | Correções apontadas pela banca e pelos mentores do regional (v1.1) | Todos | Plano, Parte 7 |
 | Itens P1 do regional que não ficarem prontos | Dono original | Regra 4 |
 

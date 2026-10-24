@@ -1,6 +1,6 @@
 # Spec — 00-projeto
 
-> **Status:** 🟡 escrita em 23/10/2026 a partir das respostas da [`discussao.md`](discussao.md) (D0–D22). Aguarda a aprovação dos três (A, B e C).
+> **Status:** 🟡 escrita em 23/10/2026 a partir das respostas da [`discussao.md`](discussao.md) (D0–D22); atualizada em 24/10/2026 a pedido do usuário: harness multiagente em Agno (D5), **modelos da OpenAI** no lugar dos locais (D3) e as funcionalidades **E1, E2, E4 e E8** (D23), com os contratos novos ou ampliados marcados com **(24/10)**. Aguarda a aprovação dos três (A, B e C).
 > **Aceites registrados:** C (Roberto), em 23/10/2026, da spec e dos contratos C1–C7 · A (Beatriz): pendente · B (Caio): pendente.
 > **Vale para todas as frentes.** Em caso de conflito, esta spec prevalece sobre a spec de uma frente. Os contratos (§5) só mudam com o acordo dos três; o escopo só muda com pedido do usuário (registrado em [`visao.md`](visao.md) §5).
 
@@ -20,7 +20,8 @@
 | Alerta clínico | A Seri **menciona a possível interação** à cuidadora, sempre com fonte e terminando em "leve ao farmacêutico ou médico" | D15.2 |
 | Destino do resumo | PDF para a cuidadora **+ link de acesso sem conta** para o profissional | D9 |
 | Primeiro pagador (tese) | Operadora | D15.3 |
-| Conferência clínica | **No regional, feita com LLM** (tabela curada, pares e relatos). Na final, por profissional, se necessário | D7.2, D15.4 |
+| Conferência clínica | **No regional, feita com LLM** (tabela curada, pares, relatos, para que serve e Farmácia Popular). Na final, por profissional, se necessário | D7.2, D15.4 |
+| Funcionalidades além da rotina (24/10) | **E8** para que serve cada remédio · **E1** conciliação a cada receita nova · **E2** preparo da consulta e registro do que o médico disse · **E4** estoque, validade da receita e Farmácia Popular. Todas no regional | D23 |
 
 ---
 
@@ -31,17 +32,17 @@
 | Plataforma | **PWA instalável já no regional**, mobile-first. React + Vite + `vite-plugin-pwa`, Tailwind + shadcn/ui | D1, D16.1, D18, D20 |
 | API | **Python 3.12 + FastAPI** + Pydantic | D2 |
 | Banco e arquivos | **SQLite** (via SQLAlchemy, para migrar para PostgreSQL na final) + arquivos em disco + **APScheduler** | D6 |
-| Loop do harness | **Loop próprio em Python com tool use** no regional; migração para **LangGraph** na final | D5 |
-| Modelos de linguagem e visão | **Open-source, locais**, servidos pelo **Ollama** (API compatível com a da OpenAI), **rodando em CPU**. Os modelos exatos saem do teste de bancada da frente `harness` | D3, D22 |
+| Harness agêntico | **Sistema multiagente com o framework Agno** (Python): uma coordenadora (a Seri) encaminha a subagentes especializados (Leitor, Intérprete, Rotina, Explicador, Diário, Agenda, Preparador, Farmácia), e as tarefas de sequência conhecida rodam como fluxos fixos. Substitui o loop próprio e a migração para LangGraph | D5 (atualizada em 24/10) |
+| Modelos de linguagem e visão | **API da OpenAI**, com a chave do time (`OPENAI_API_KEY`). Os modelos exatos saem do teste de bancada da frente `harness` (ponto de partida: `gpt-6-luna`). Substitui os modelos open-source locais | D3 (atualizada em 24/10) |
 | Voz | **Local:** faster-whisper (STT) e Piper (TTS), com ffmpeg para converter os formatos de áudio | D4 |
 | Notificação | Web Push com chaves VAPID geradas por nós (P1) | D1 |
 | Ambiente local | **Docker Compose** | D8 |
-| Produção | **Frontend na Netlify**; API + harness + dados + modelos + banco **numa máquina do time**, em Docker, exposta por **Cloudflare Tunnel** (HTTPS) | D8, D22 |
+| Produção | **Frontend na Netlify**; API + harness + dados + voz + banco **numa máquina do time**, em Docker, exposta por **Cloudflare Tunnel** (HTTPS). Os modelos de linguagem rodam na OpenAI | D8, D22 |
 | Idioma | **Português** no código, nos comentários e nos nomes | D12.4 |
 
 Versões: Python 3.12; as demais bibliotecas na versão estável do dia em que forem instaladas, **fixadas no arquivo de dependências** (`pyproject.toml`/lockfile e `package-lock.json`).
 
-Na final, conforme as respostas: LangGraph (D5), PostgreSQL + armazenamento de objetos + fila (D6) e, se o time conseguir acesso, API da OpenAI ou da Anthropic (observação da D3). O cliente do LLM fica isolado para essa troca ser trivial.
+Na final, conforme as respostas: PostgreSQL + armazenamento de objetos + fila (D6). A criação dos modelos fica isolada no harness (`harness/agentes/modelos.py`): trocar de modelo ou de provedor é mudar só ali.
 
 ---
 
@@ -55,21 +56,24 @@ Na final, conforme as respostas: LangGraph (D5), PostgreSQL + armazenamento de o
                                       │ HTTPS + token Bearer
                                       ▼
  Máquina do time ── Cloudflare Tunnel ── Docker Compose
-                                      ├─ api       (FastAPI + harness + dados, um processo Python)
+                                      ├─ api       (FastAPI + harness em Agno + dados, um processo Python)
                                       │    ├─ SQLite + arquivos  (volume)
-                                      │    ├─ faster-whisper, Piper, ffmpeg
-                                      │    └─ fila de mensagens  (um item por vez)
-                                      └─ ollama    (modelos de visão e de conversa, CPU)
+                                      │    ├─ faster-whisper, Piper, ffmpeg (voz local)
+                                      │    ├─ fila de mensagens  (um item por vez)
+                                      │    └─ agendador (lembretes, verificação diária, consultas)
+                                      └─ tunel     (cloudflared)
+
+ api ── HTTPS + OPENAI_API_KEY ──► API da OpenAI (modelos de visão e de conversa)
 ```
 
 Consequências que todas as frentes precisam respeitar:
 
 1. **A máquina de produção fica ligada** durante a avaliação da banca e a demo. Qual máquina e quem cuida dela: BE-D3 em [`backend/discussao.md`](../backend/discussao.md).
-2. **Processamento assíncrono.** O túnel da Cloudflare corta requisições que passam de ~100 s, e o modelo em CPU pode demorar mais que isso numa foto. Por isso, nenhuma requisição espera o harness: a API recebe a mensagem, responde na hora com `202` e o frontend consulta a resposta (§6).
+2. **Processamento assíncrono.** O túnel da Cloudflare corta requisições que passam de ~100 s, e uma foto passa por vários subagentes (e pela transcrição local, no caso do áudio). Por isso, nenhuma requisição espera o harness: a API recebe a mensagem, responde na hora com `202` e o frontend consulta a resposta (§6).
 3. **Domínios diferentes** (Netlify × túnel): autenticação por **token Bearer no cabeçalho**, não por cookie (o Safari bloqueia cookie entre sites). A API libera CORS só para o domínio da Netlify e para `localhost`.
 4. **URL da API no frontend** vem da variável `VITE_API_URL`. Se o túnel tiver URL aleatória, a variável é atualizada e o frontend republicado antes da apresentação (BE-D2).
-5. **CPU é lento:** a imagem é reduzida no celular, a fila processa uma mensagem por vez, a conversa mostra "a Seri está lendo a receita…" e o **vídeo de backup da demo** é obrigatório.
-6. **Privacidade:** o modelo é local, então foto, áudio e receita **não saem da máquina do time** para nenhum provedor de IA.
+5. **Depende de internet e da OpenAI:** a imagem é reduzida no celular (menos tempo e menos custo), a conversa mostra "a Seri está lendo a receita…", a conta da OpenAI tem crédito e limite de gasto conferidos antes da demo, e o **vídeo de backup da demo** é obrigatório.
+6. **Privacidade (24/10):** foto, texto da receita, transcrição do áudio e o contexto da conversa **vão para a OpenAI**. O áudio em si fica na máquina (a voz é local). O termo de consentimento diz isso, o contexto leva só o apelido do idoso, e a política de uso e retenção de dados da API da OpenAI é conferida e citada no termo (§7.3).
 
 ---
 
@@ -118,7 +122,32 @@ class ItemLido:             # um remédio lido ou proposto
     horarios: list[str]                 # ["08:00", "20:00"]; vazio se não der para inferir
     origem: Literal["receita_foto", "caixa_foto", "receita_pdf", "digitado", "falado"]
     confianca: float                    # 0 a 1
-    status: Literal["proposto", "nao_confirmado", "ilegivel", "confirmado"]
+    status: Literal["proposto", "nao_confirmado", "ilegivel", "confirmado", "retirado"]   # retirado (24/10): "o médico tirou" na conciliação
+    # (24/10) campos para E1, E4 e E8; todos opcionais
+    prescritor: str | None              # especialidade ou nome curto do médico, como na receita
+    data_receita: date | None
+    indicacao_na_receita: str | None    # só se estiver escrita ("para pressão")
+    unidades_por_dose: float | None     # "1 cp" → 1; "meio comprimido" → 0.5
+    quantidade_embalagem: int | None    # caixa: "30 comprimidos" → 30
+
+class Mudanca:                          # (24/10) E1 — resultado da conciliação
+    tipo: Literal["novo", "mantido", "alterado", "ausente"]
+    item_novo_id: str | None
+    item_anterior_id: str | None
+    o_que_mudou: list[str]              # em alterado: ["concentracao", "horarios", "unidades_por_dose"]
+    nome_diferente: bool                # mesmo princípio com outro nome comercial
+    decisao: Literal["continua", "medico_tirou", "nao_sei"] | None   # só em ausente
+
+class InfoRemedio:                      # (24/10) E8 e E4 — vem do C8
+    principio_ativo: str
+    para_que_serve: str                 # frase simples de uso comum: "controlar a pressão alta"
+    farmacia_popular: bool
+    farmacia_popular_detalhe: str | None        # indicação do programa, se houver
+    documentos_farmacia_popular: list[str]      # ["a receita", "um documento com foto", "o CPF"]
+    tipo_receita: Literal["simples", "controle_especial", "antimicrobiano"] | None
+    validade_receita_dias: int | None
+    fonte: str
+    conferencia: Literal["llm", "profissional"]
 
 class Alerta:
     tipo: Literal["interacao", "duplicidade_principio", "duplicidade_classe", "cbmpi"]
@@ -147,9 +176,13 @@ class Conduta:
 
 ```python
 class Acao:
-    tipo: Literal["confirmar_pendencia", "recusar_pendencia", "corrigir_item"]
+    tipo: Literal["confirmar_pendencia", "recusar_pendencia", "corrigir_item",
+                  "definir_escopo", "decidir_item", "contar_estoque"]       # os 3 últimos: (24/10)
     pendencia_id: str
-    dados: dict                         # em corrigir_item: {"item_id": ..., "texto": "o nome certo é ..."}
+    dados: dict                         # corrigir_item: {"item_id", "texto"}
+                                        # definir_escopo: {"escopo": "toda_lista" | "medico" | "acrescimo"}
+                                        # decidir_item: {"item_anterior_id", "decisao": "continua" | "medico_tirou" | "nao_sei"}
+                                        # contar_estoque: {"item_id", "quantidade"}
 
 class MensagemEntrada:
     mensagem_id: str                    # UUID gerado no celular (idempotência)
@@ -167,19 +200,30 @@ class Botao:
     abre: Literal["camera", "galeria", "pdf", "gravar", "teclado", "tel:192"] | None
 
 class MensagemSaida:
-    tipo: Literal["texto", "lista_para_confirmar", "alertas", "pedido_de_foto", "ligue_192", "resumo"]
+    tipo: Literal["texto", "lista_para_confirmar", "alertas", "pedido_de_foto", "ligue_192", "resumo",
+                  "consulta_preparada", "aviso_estoque"]                    # os 2 últimos: (24/10)
     texto: str                          # sempre presente; é o que o Auditor verifica
     audio: Anexo | None                 # fala da Seri, quando houver
     itens: list[ItemLido] | None        # em lista_para_confirmar
+    mudancas: list[Mudanca] | None      # (24/10) em lista_para_confirmar, quando houve conciliação (E1)
+    info: list[InfoRemedio] | None      # (24/10) "para que serve" de cada item (E8)
     alertas: list[Alerta] | None        # em alertas e lista_para_confirmar
-    resumo_id: str | None               # em resumo
+    resumo_id: str | None               # em resumo e consulta_preparada
     botoes: list[Botao]
+
+class EventoAgendado:                   # (24/10) disparado pelo agendador de A (E2, E4)
+    tipo: Literal["verificacao_diaria", "vespera_consulta", "pos_consulta"]
+    conta_id: str
+    idoso_id: str
+    consulta_id: str | None             # nos eventos de consulta
+    disparado_em: datetime
 
 class RespostaHarness:
     mensagens: list[MensagemSaida]
     estado: Literal["ok", "aguardando_confirmacao", "erro"]
 
 def processar_mensagem(entrada: MensagemEntrada, repo: Repositorio) -> RespostaHarness: ...
+def processar_evento(evento: EventoAgendado, repo: Repositorio) -> RespostaHarness: ...   # (24/10)
 def falar(texto: str) -> Anexo: ...     # TTS do lembrete; áudio em MP3 (toca no Android e no iPhone)
 ```
 
@@ -220,6 +264,7 @@ def avaliar_gravidade(sintoma: SintomaEstruturado) -> Conduta: ...
 ```python
 class Resumo:
     resumo_id: str
+    tipo: Literal["escalonamento", "preparo_consulta"]   # (24/10) preparo_consulta = E2
     idoso_apelido: str
     periodo_inicio: date
     periodo_fim: date
@@ -229,6 +274,10 @@ class Resumo:
     sintomas: list[dict]                # SintomaEstruturado + "registrado_em" + conduta
     alertas: list[Alerta]
     perguntas_para_profissional: list[str]
+    info: list[InfoRemedio]             # (24/10) para que serve cada remédio da lista (E8)
+    consulta: dict | None               # (24/10) em preparo_consulta: {"data_hora", "profissional", "local"}
+    mudancas_recentes: list[dict]       # (24/10) mudanças na lista no período: {"data", "nome", "tipo", "o_que_mudou"}
+    pontos_para_conferir: list[str]     # (24/10) itens "não sei", não confirmados, receitas vencendo, estoque baixo
     aviso: str                          # texto fixo: "Gerado a partir dos relatos da cuidadora. Não é diagnóstico."
     gerado_em: datetime
 ```
@@ -245,15 +294,23 @@ class Repositorio(Protocol):
     def obter_diario(self, idoso_id, desde) -> list[RegistroDiario]: ...
     def obter_historico(self, conta_id, limite=20) -> list[MensagemDaConversa]: ...
     def obter_pendencias(self, conta_id) -> list[Pendencia]: ...     # pendencia_id, tipo, dados, criada_em
+    def obter_versoes_lista(self, idoso_id, desde) -> list[ListaVersao]: ...   # (24/10) E1 e E2
+    def obter_consultas(self, idoso_id, desde) -> list[Consulta]: ...         # (24/10) consulta_id, data_hora, profissional, local, relato
+    def obter_estoque(self, idoso_id) -> list[RegistroEstoque]: ...           # (24/10) último registro por item: item_id, quantidade, registrado_em
 
     # escrita (ferramentas)
     def criar_pendencia(self, conta_id, tipo, dados) -> str: ...     # tipos: lista_para_confirmar, mudanca_cronograma, diario_aberto, leitura_baixa_confianca
+                                                                     # (24/10) escopo_receita, consulta_para_confirmar, relato_consulta, quantidade_por_dose
+    def atualizar_pendencia(self, pendencia_id, dados) -> None: ...  # (24/10) definir_escopo e decidir_item mudam a proposta guardada
     def resolver_pendencia(self, pendencia_id, resultado) -> None: ...
     def salvar_lista_confirmada(self, idoso_id, itens) -> int: ...   # cria nova versão e o cronograma; devolve a versão
     def alterar_cronograma(self, idoso_id, mudancas) -> None: ...
     def registrar_dose(self, horario_id, status, quando) -> None: ...
     def registrar_sintoma(self, idoso_id, sintoma, conduta) -> str: ...
-    def salvar_resumo(self, resumo: Resumo) -> dict: ...             # {"resumo_id", "url_pdf", "url_publica"}
+    def salvar_resumo(self, resumo: Resumo) -> dict: ...             # {"resumo_id", "url_pdf", "url_publica"}; o PDF muda pelo tipo
+    def salvar_consulta(self, idoso_id, data_hora, profissional, local) -> str: ...   # (24/10) agenda os eventos da consulta
+    def registrar_relato_consulta(self, consulta_id, relato: dict) -> None: ...       # (24/10)
+    def registrar_estoque(self, item_id, quantidade, quando, origem) -> None: ...     # (24/10) origem: falado | caixa_foto
     def registrar_passo(self, passo: dict) -> None: ...              # registro de passos (P1)
 ```
 
@@ -266,7 +323,16 @@ harness.processar_mensagem(entrada, repo)                         # o harness in
 harness.leitor.ler(anexo) -> list[ItemLido]                       # leitura isolada
 harness.auditor.verificar(texto, contexto) -> ResultadoAuditor    # aprovado: bool, motivos: list[str], texto_final: str
 harness.diario.estruturar(texto) -> SintomaEstruturado
+harness.conciliacao.conciliar(lista_atual, itens_novos, escopo) -> list[Mudanca]   # (24/10) E1
 ```
+
+### C8 — Harness e plataforma → dados: informação do remédio (B e A chamam, C implementa) (24/10)
+
+```python
+def info_remedio(principio_ativo: str) -> InfoRemedio | None: ...   # None = sem informação na tabela
+```
+
+Usado pelo harness (E8, E4, preparo da consulta) e pela API de A (tela Remédios). Determinístico, só tabela com fonte.
 
 ---
 
@@ -288,7 +354,8 @@ harness.diario.estruturar(texto) -> SintomaEstruturado
 |---|---|---|
 | Nunca sugerir dose, troca ou suspensão | Auditor em toda `MensagemSaida` + instrução do sistema | B |
 | Nada vira cronograma sem confirmação | Ferramentas com `exige_confirmacao` só criam pendência; só a ação `confirmar_pendencia` da cuidadora executa | B (fluxo) + A (botões) |
-| Fato clínico só de ferramenta, com fonte | `Alerta` e `Conduta` sempre vêm de C2–C4; o Auditor bloqueia fato clínico sem objeto de origem | B + C |
+| Fato clínico só de ferramenta, com fonte | `Alerta`, `Conduta` e `InfoRemedio` sempre vêm de C2–C4 e C8; o Auditor bloqueia fato clínico (inclusive "para que serve") sem objeto de origem | B + C |
+| Nunca sugerir tirar ou manter remédio na conciliação (E1) | Comparação determinística; a decisão "o médico tirou" é da cuidadora; "não sei" mantém o item e vira pergunta para a consulta | B |
 | Sinal de alarme não passa pelo LLM | `detectar_alarme` antes do modelo → mensagem fixa `ligue_192` | C (regra) + B (posição no fluxo) |
 | Na dúvida, chamar um humano | Fluxo de confiança baixa (D19) e "confirme com o farmacêutico" | B |
 | LGPD | Consentimento antes de qualquer envio; dados mínimos; nada para a operadora | A |
@@ -296,13 +363,14 @@ harness.diario.estruturar(texto) -> SintomaEstruturado
 ### 7.2 Regras do harness (D21)
 
 - Até **5 chamadas de ferramenta por mensagem**. No limite, o harness para e responde com o que tem.
-- **Exigem confirmação da cuidadora:** `salvar_lista_confirmada` e qualquer mudança no cronograma. **Diretas:** `registrar_dose` e `registrar_sintoma`.
+- **Exigem confirmação da cuidadora:** `salvar_lista_confirmada`, qualquer mudança no cronograma e `registrar_consulta` (24/10). **Diretas:** `registrar_dose`, `registrar_sintoma` e `registrar_estoque` (24/10).
 - **O modelo nunca decide sozinho:** o sinal de alarme (regra fixa → 192), os fatos clínicos (só vêm das ferramentas de C) e a liberação da saída (sempre passa pelo Auditor).
 - **Registro de passos** (P1): cada observação, ferramenta chamada, resultado e bloqueio do Auditor fica guardado **só no servidor**.
 
 ### 7.3 LGPD e dados
 
 - A tela de consentimento é a única forma de consentimento no regional (D14.3). Sem consentimento aceito, a API recusa os envios.
+- (24/10) O termo informa que foto, texto da receita e transcrição do áudio são processados pela **OpenAI** (fora do Brasil), conforme a política de dados da API, e que o áudio fica na máquina do time.
 - Perfil do idoso mínimo: **apelido**.
 - Logs não guardam conteúdo de mensagem, receita ou sintoma, só ids, tempos e erros. O registro de passos (P1) é a exceção, fica no banco e nunca sai do servidor.
 - O link público do resumo usa um token aleatório e expira (BE-D1).
@@ -327,5 +395,9 @@ A demo funciona **na URL da Netlify, em um Android e em um iPhone reais**, com o
 5. **Lembrete disparado na hora**, com texto e áudio → "Tomei".
 6. **Áudio** de sintoma → sinal de alarme vira o cartão "Ligue 192"; sintoma não urgente vira **resumo em PDF + link** para o profissional.
 7. Uma tentativa de pedir dose é recusada pelo Auditor.
+8. (24/10) **"Para que serve a losartana?"** → a Seri responde com a frase da tabela e a fonte (E8).
+9. (24/10) **Foto de uma receita nova** → a Seri mostra o que entrou, o que mudou e o que não veio, e pergunta sobre o que não veio (E1).
+10. (24/10) **Consulta marcada** → na véspera (disparada na hora pelo modo demo), chega a página "Para levar à consulta" com as perguntas (E2).
+11. (24/10) **Aviso de estoque** ("a losartana deve acabar por volta de…") com a informação do Farmácia Popular (E4).
 
 Mais o relatório da avaliação (frente `avaliacao`), o pitch e o vídeo de backup (frente `negocio`).

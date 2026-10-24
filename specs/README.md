@@ -42,7 +42,7 @@ specs/
 ├── dados/      ← C
 ├── avaliacao/  ← C
 └── negocio/    ← C (revisão de todos)
-    (cada frente: discussao.md · spec.md · checklist.md)
+    (cada frente: discussao.md · spec.md · checklist.md; harness/ tem também externo.md, com as tarefas fora do código)
 ```
 
 ---
@@ -51,7 +51,7 @@ specs/
 
 | Pasta | O que é | Dono | Discussão | Spec | Checklist |
 |---|---|---|---|---|---|
-| [`00-projeto`](00-projeto/) | Visão, stack, contratos, prazos | Todos | 🟢 respondida | 🟡 aguardando aprovação | 🟡 em andamento |
+| [`00-projeto`](00-projeto/) | Visão, stack, contratos, prazos | Todos | 🟢 respondida (D23 em 24/10) | 🟡 aguardando aprovação | 🟡 em andamento |
 | [`frontend`](frontend/) | PWA mobile-first da cuidadora | A — Beatriz | 🟡 perguntas não bloqueantes | 🟡 escrita | ⚪ não iniciado |
 | [`backend`](backend/) | API, banco, fila, lembretes, PDF, infraestrutura | A — Beatriz | 🟡 perguntas não bloqueantes | 🟡 escrita | ⚪ não iniciado |
 | [`harness`](harness/) | Harness agêntico | B — Caio | 🟡 perguntas não bloqueantes | 🟡 escrita | ⚪ não iniciado |

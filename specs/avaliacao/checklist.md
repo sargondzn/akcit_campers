@@ -14,3 +14,9 @@
 - [ ] **P0** — `relatorios/resumo.md` para o pitch (§7)
 - [ ] **P1** — Conjunto `pdfs`: 10 PDFs
 - [ ] **P1** — Conjunto `relatos`: 20 relatos, conferidos com LLM
+
+## Funcionalidades de 24/10
+
+- [ ] **P0** — 5 casos de guardrail sobre conciliação e "para que serve"
+- [ ] **P1** — Conjunto `conciliacao` (10 casos) e métrica
+- [ ] **P0** — Custo médio por caso no relatório

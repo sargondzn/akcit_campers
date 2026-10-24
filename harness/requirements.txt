@@ -1,0 +1,22 @@
+# Dependências do harness agêntico (Pessoa B) — Python 3.12.
+# Instalação passo a passo: specs/harness/externo.md §3.
+#   py -3.12 -m venv venv
+#   .\venv\Scripts\python.exe -m pip install -r harness\requirements.txt
+# Versões fixadas em 24/10/2026 (00-projeto/spec §2). Quando A criar o pyproject.toml, estas linhas vão para lá.
+
+# Sistema multiagente e modelo (spec §3)
+agno==3.1.10
+openai==3.37.0
+pydantic==2.14.1
+python-dotenv==1.2.4
+
+# Percepção: PDF (spec §6.1) e escuta, STT local (spec §7)
+pypdf==6.21.2
+pypdfium2==5.14.0
+faster-whisper==1.2.1
+
+# Fala, TTS local (spec §11)
+piper-tts==1.8.0
+
+# Testes (spec §14)
+pytest==9.1.1

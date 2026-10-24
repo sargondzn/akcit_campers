@@ -144,6 +144,8 @@ Também há uma divergência interna no plano: o **aviso de estoque** aparece na
 1. Quero que o PWA seja intalável já na etapa regional. No normalizador, iremos usar cerca de 20 remédios. De resto, concordo com a ideia de separação entre p0 e p1.
 2. O registro de estoque fica apenas para a final.
 
+> **Atualização (24/10/2026, pedido do usuário):** o estoque e a renovação de receita entram no regional como parte da **E4** (D23).
+
 
 ---
 
@@ -235,6 +237,8 @@ Modelos sugeridos: `claude-sonnet-5-5` para visão e extração; `claude-haiku-5
 
 Observação para o grupo: se algum de vocês conseguir ter acesso à API da OpenAI ou da Anthropic, podemos usar caso cheguemos na final, mas para a etapa regional, acho que faz mais sentido usarmos um modelo open-source.
 
+
+> **Atualização (24/10/2026, pedido do usuário):** *"Nós iremos usar a partir de agora uma chave api da openai ao invés de um modelo open source."* Os modelos de linguagem e visão passam a ser os da **API da OpenAI**, chamados pelo Agno (`OpenAIResponses`). A voz continua local (D4), por escolha do usuário em 24/10. Foto, texto da receita e transcrição do áudio passam a sair da máquina do time (00-projeto/spec §3, item 6). Detalhes em [`harness/spec.md`](../harness/spec.md) §3.2.
 ---
 
 ## D4 — Voz (STT do diário, TTS do lembrete)
@@ -266,6 +270,8 @@ Observação para o grupo: se algum de vocês conseguir ter acesso à API da Ope
 **Recomendação:** A. Cada componente do harness vira um módulo com contrato tipado, e o diagrama da visão §2.1 cumpre o papel visual na banca.
 
 **Resposta:** Usaremos para a etapa regional a opção A. Mas iremos desenvolver para a opção B, caso a gente chegue na final.
+
+> **Atualização (24/10/2026, pedido do usuário):** *"Vamos deixar de usar apenas o python e vamos usar o agno de framework. Quero que nós tenhamos um sistema multiagentes que permita a orquestração de subagentes que se dividem de acordo com as tarefas."* O harness passa a ser um **sistema multiagente em Agno** desde já, no lugar do loop próprio (A) e da migração para LangGraph (B). Os fluxos críticos (192, confirmação, Auditor) continuam fixos em código, fora dos agentes. Detalhes em [`harness/spec.md`](../harness/spec.md) §2–§3.
 
 ---
 
@@ -413,3 +419,76 @@ Acho importante dizer aqui que talvez não consigamos trazer tudo que a etapa de
 **Resposta:**
 1. Máquina do time + túnel: frontend na Netlify; API, harness, modelos e banco num computador do time, em Docker, exposto por Cloudflare Tunnel (HTTPS).
 2. Não / não sei. Os modelos rodam em CPU (modelos pequenos), salvo se aparecer uma GPU.
+
+> **Atualização (24/10/2026):** com a troca para a API da OpenAI (D3 atualizada), a máquina do time continua rodando API, harness, dados, voz e banco, mas **não roda mais modelo de linguagem**. Ela precisa de internet estável no dia da demo; a exigência de RAM cai.
+
+---
+
+## D23 — Extensão do escopo: resolver mais problemas da cuidadora 🟢
+
+> Aberta em 24/10/2026, a pedido do usuário: *"estamos com um escopo muito falho na questão de resolução de problemas… estender para algo que resolva os problemas do mesmo público, de forma que o sistema não possa ser simplesmente substituído por um alarme no celular"*. **Nada muda nas specs até esta discussão ser respondida.** As escolhas vão para a `visao.md` §5 e para o `escopo-por-fase.md`.
+
+### Contexto
+
+Na prática, o que a cuidadora sente no dia a dia hoje é o **lembrete**. O resto do valor (ler a receita, cruzar remédios, escalar) aparece em momentos raros: quando chega receita nova ou quando surge um sintoma. Entre esses momentos, a Seriema parece um despertador, e a banca vai fazer o teste de remoção (edital 9.4) exatamente aí.
+
+O próprio plano já aponta dores que o escopo atual não ataca:
+- **84,6% das cuidadoras familiares têm sobrecarga** e 25,8% largaram trabalho ou estudo (plano, Parte 2.1).
+- O risco **crítico** do plano é a dor real ser **cansaço, dinheiro ou revezamento entre irmãos**, com a saída proposta: "coordenação do cuidado entre a família" (plano, riscos).
+- "Carga percebida pelo cuidador" é uma das **3 métricas de sucesso** do escopo original e não é medida em lugar nenhum.
+- Estoque, renovação de receita e preparo da consulta aparecem no plano, mas ficaram na final ou fora.
+
+### Critério para escolher (teste de remoção)
+
+Uma funcionalidade só entra se **um alarme no celular não consegue fazê-la**. O alarme toca na hora marcada e só isso. Ele não **lê** o que chega, não **lembra** o que aconteceu, não **compara** antes e depois, não **fecha o ciclo** (confere se a dose foi dada e avisa outra pessoa se não foi) e não **fala com outro humano**.
+
+### Propostas
+
+| # | Funcionalidade | Problema da cuidadora | Por que um alarme não faz | Peças do harness | Esforço |
+|---|---|---|---|---|---|
+| **E1** | **Conciliação a cada mudança** (consulta, alta hospitalar, receita nova) | Cada médico mexe num pedaço da lista e ninguém vê o todo. A volta da internação é o momento de maior risco | Compara a lista confirmada com a receita nova e mostra **o que entrou, o que saiu e o que mudou**, perguntando sobre o que pode ter sido esquecido ("A receita nova não tem a sinvastatina. O médico tirou, ou ela continua?"). Nada muda sem confirmação | Leitor + memória versionada + `checar_lista` (C3) + confirmação | Médio: reaproveita o fluxo de leitura |
+| **E2** | **Preparo da consulta** | Ela chega à consulta sem lembrar o que aconteceu no mês | Na véspera, monta **uma página** com remédios atuais, doses perdidas, sintomas do período, mudanças na lista e perguntas para o médico. Depois da consulta, um áudio "o que o médico disse" vira registro e, se houver receita, segue para a E1 | `Resumo` (C5) já existe + Diário | Baixo: é o resumo com outro gatilho |
+| **E3** | **Rede de cuidado** (mais de um cuidador por idoso) | Revezamento entre irmãos: ninguém sabe se a mãe já tomou e há **dose dobrada** ou esquecida na troca de turno | Mostra **quem deu qual dose e quando**, avisa ao tentar registrar uma dose já dada, faz a **passagem de plantão** ("Hoje: tomou 4 de 5, a das 14h ficou sem resposta, teve tontura às 15h") e **escala a dose sem resposta** para o próximo da rede | Memória + agendador + nova ferramenta `passar_plantao` + escalonamento | Alto: muda contas (D17) e permissões |
+| **E4** | **Remédio nunca falta** (estoque, validade da receita e acesso gratuito) | Remédio acaba no fim de semana, a receita vence sem ninguém perceber e muitas famílias pagam por remédio que poderiam pegar de graça | Conta o estoque pela foto da caixa (quantidade) e pelas doses confirmadas, avisa **"a losartana acaba em 5 dias"** e **"a receita vence dia X"** e diz se o remédio está na **Farmácia Popular** e o que levar (receita, documento) | Leitor (quantidade) + nova tabela de C (Farmácia Popular) + agendador | Médio |
+| **E5** | **Cuidar de quem cuida** | Sobrecarga, cansaço, isolamento | Um check-in curto e periódico ("como você está esta semana?") com uma **escala de sobrecarga** curta. Mostra a evolução, sugere dividir tarefas com a rede (E3) e indica serviços de apoio (CRAS, grupos de cuidadores, Política Nacional de Cuidados). Regra fixa para risco à vida → **CVV 188** | Diário + regras fixas (como o 192) + nova tabela de C | Baixo a médio |
+| **E6** | **Dúvidas práticas de administração** | "Ela não consegue engolir, posso amassar?", "Ela não quis tomar", "Vomitou depois do remédio" | Responde **só com tabela e fonte** (ex.: lista de remédios que não podem ser partidos ou triturados) e registra a recusa. Recusas que se repetem viram ponto do resumo para o médico | Nova ferramenta de C + Auditor + Diário | Médio |
+| **E7** | **Padrões no tempo** (já previsto para a final: tendências e efeito adverso × sintoma) | Ela não liga a tontura de hoje ao remédio novo de 3 dias atrás | "A tontura começou 2 dias depois que entrou o anlodipino. Vale levar ao médico." Doses que falham sempre no mesmo horário viram pergunta para a consulta, sem sugerir mudar o horário | Diário + memória + tabela de efeitos (C) | Médio a alto |
+
+### Como isso muda o pitch *(leitura minha)*
+
+O pitch passa de "lê a receita e lembra" para **"a Seriema acompanha o cuidado inteiro: o que mudou, quem deu, o que vai faltar e como você está"**. Isso também melhora as duas notas fracas da avaliação:
+- **Pagador:** E1 (alta hospitalar) e E4 (adesão sem falta de remédio) atacam a reinternação, que é o que a operadora paga para evitar.
+- **Diferencial:** E3 e E5 não existem nos apps de lembrete (MyTherapy, Medisafe) nem no App Cuidar.
+
+### Conflitos com o que já foi decidido
+
+1. **Prazo:** a spec marca o regional para **24/10/2026, hoje**. Para o regional dá no máximo para **contar** essas funcionalidades no pitch, como roadmap. A construção fica para a final (28/11).
+2. **D17 (uma conta = uma cuidadora = um idoso):** a E3 exige vários cuidadores por idoso, com convite e permissão. Muda o banco, a API e as telas de A.
+3. **Guardrail 1 (nunca orientar dose):** a E6 encosta nele. "Pode amassar?" e "vomitou, dou de novo?" são perguntas sobre administração. A proposta é responder **só** o que estiver na tabela com fonte e, no resto, mandar ao farmacêutico. Precisa de decisão explícita.
+4. **E5 e saúde mental:** exige uma regra fixa nova (CVV 188, como o 192) e cuidado com o tom. Escalas validadas de sobrecarga (ex.: Zarit) podem ter **licença de uso comercial**: C confere antes.
+5. **E4 e a Farmácia Popular:** a lista de remédios, a gratuidade e as regras de receita mudam com o tempo. A tabela precisa de fonte e data, como a CMED.
+6. **Regulatório (RDC 657/2022):** E1, E6 e E7 se aproximam de apoio à decisão clínica. Manter "organiza e encaminha; não decide" é o que segura o enquadramento.
+7. **Carga do time:** 3 pessoas. Tudo junto não cabe até 28/11, junto com o piloto e o painel do profissional.
+
+### Perguntas
+
+1. **Fase:** as novas funcionalidades entram para a **final (28/11)**, e no regional só aparecem no pitch? Ou alguma precisa ser construída já?
+2. **Quais entram?** Marque as escolhidas entre E1–E7, e diga se há outra dor das entrevistas que não está aqui.
+3. **E3:** aceita mudar a D17 para vários cuidadores por idoso?
+4. **E6:** aceita responder dúvidas de administração **só a partir de tabela com fonte** (e encaminhar o resto), ou prefere deixar a E6 de fora para não encostar no guardrail 1?
+5. **E5:** aceita a regra fixa nova (CVV 188) e o check-in periódico?
+6. **Painel do profissional (final):** continua? Se sim, ele disputa tempo com as funcionalidades novas.
+
+**Recomendação:** tudo para a final, e no regional só o pitch ("para onde vamos"). Na final:
+- **P0:** **E1 + E2** (reaproveitam quase tudo e são o argumento da operadora) e **E3** (a resposta ao risco crítico do plano e o que mais distancia a Seriema de um alarme).
+- **P1:** **E4** e **E5**. A E5 é barata e passa a medir a terceira métrica de sucesso.
+- **Depois da final:** **E6** e **E7**, que dependem de tabelas clínicas maiores e de mais cuidado regulatório.
+- As escolhas precisam caber no piloto de 2 semanas (02/11–15/11), então vale validar E3 e E5 nas próximas entrevistas antes de construir.
+
+**Resposta:** (24/10/2026, pedido do usuário, registrado por mim)
+1. **Fase:** todas entram **já, no regional**.
+2. **Entram:** **E1**, **E2** e **E4**, mais uma nova, **E8 — para que serve cada remédio** ("quero que seja possível que a pessoa saiba para quê cada remédio serve"). E3, E5, E6 e E7 ficam fora por enquanto.
+3. a 5. Não se aplicam (E3, E5 e E6 ficaram fora).
+6. Painel do profissional: segue como estava, na final.
+
+> E8 segue o guardrail 3: a frase de "para que serve" vem de tabela com fonte (C8), sempre com "o motivo exato para ela, só o médico que receitou pode dizer". Detalhes: [`harness/spec.md`](../harness/spec.md) §7, §10, §11 e §12.

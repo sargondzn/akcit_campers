@@ -15,3 +15,10 @@
 - [x] **P0** — Entregar para B: funções reais no lugar dos stubs (`from dados import normalizar, checar_lista, detectar_alarme, avaliar_gravidade`; troca dos stubs é de B)
 - [ ] **P0** — Validar com B o vocabulário do extrator × `regras_gravidade.csv` (DA-D4; ver `vocabulario-diario.md`)
 - [ ] **P1** — Revisão humana póstuma das tabelas e fontes (`revisao-humana.md`)
+
+## Funcionalidades de 24/10 (E4, E8)
+
+- [ ] **P0** — `indicacoes.csv` para os ~20 remédios, gerada e conferida com LLM, com fonte (E8)
+- [ ] **P0** — `farmacia_popular.csv` a partir da página oficial do programa, com a data (E4)
+- [ ] **P1** — `tipos_receita.csv` e a coluna `tipo_receita` em `remedios.csv` (E4)
+- [ ] **P0** — `info_remedio` (C8) + testes
