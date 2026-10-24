@@ -1,6 +1,6 @@
 # Visão do projeto — Seriema (F3: cuidador familiar e a medicação do idoso)
 
-> Resumo da minha leitura do projeto. **Última revisão: 23/10/2026** (respostas da discussão incorporadas).
+> Resumo da minha leitura do projeto. **Última revisão: 24/10/2026** (harness multiagente em Agno, modelos da OpenAI e funcionalidades E1, E2, E4 e E8: §1, §2 e §5).
 >
 > **Fontes do escopo:**
 > - [`docs/f3_plano_startup_v1.md`](../../docs/f3_plano_startup_v1.md) — plano de 16/10: mercado, caminhos, arquitetura, BMC, riscos e cronograma.
@@ -19,7 +19,11 @@ Na plataforma, a cuidadora **fotografa a receita física** que recebeu do médic
 - **aponta interações, duplicidades e remédios inapropriados para idosos**, sempre mandando levar ao farmacêutico ou ao médico;
 - **lembra as doses por notificação, com texto e áudio**;
 - **registra os sintomas que ela relata por áudio gravado na própria plataforma**;
-- **escala para um profissional** quando as regras de gravidade pedem, ou manda **ligar 192** em sinal de alarme.
+- **escala para um profissional** quando as regras de gravidade pedem, ou manda **ligar 192** em sinal de alarme;
+- **explica para que serve cada remédio**, com a fonte (E8);
+- **compara cada receita nova com a lista** e mostra o que entrou, o que mudou e o que não veio, perguntando à cuidadora sobre o que não veio (E1);
+- **prepara a consulta:** na véspera, uma página com os remédios, o que aconteceu e o que perguntar; depois, registra o que o médico disse (E2);
+- **avisa antes de o remédio acabar e de a receita vencer**, e diz quando ele sai de graça pelo Farmácia Popular (E4).
 
 > *"Mande a foto dos remédios e um áudio do dia. A Seriema organiza tudo, lembra por você e avisa quando algo precisa de um profissional."*
 
@@ -41,7 +45,7 @@ O agente **organiza e encaminha; não decide**. Nunca sugere dose, troca ou susp
 
 ### 2.1 Arquitetura (escopo para o regional)
 
-O sistema tem três camadas: a **plataforma** (o que a cuidadora vê), o **harness agêntico** (o que transforma o modelo em agente) e as **ferramentas de dados** (os fatos clínicos determinísticos).
+O sistema tem três camadas: a **plataforma** (o que a cuidadora vê), o **harness agêntico** (o que transforma o modelo em agente) e as **ferramentas de dados** (os fatos clínicos determinísticos). Desde 24/10, o harness é um **sistema multiagente construído com o framework Agno**, com os modelos da **API da OpenAI** (D5 e D3 atualizadas; mudanças registradas na §5): a coordenadora encaminha cada tarefa a um **subagente especializado**, e o que é segurança ou cálculo fica fora dos agentes, em código.
 
 ```
   Plataforma Seriema (PWA, mobile-first)
@@ -49,25 +53,39 @@ O sistema tem três camadas: a **plataforma** (o que a cuidadora vê), o **harne
                           │
                        [API]  ← contas, banco, arquivos, agendador
                           │
- ┌──────────────────────── HARNESS AGÊNTICO ─────────────────────────┐
+ ┌──────────────────── HARNESS AGÊNTICO (Agno) ───────────────────────┐
  │                                                                    │
- │  PERCEPÇÃO            MEMÓRIA E ESTADO            MODELO (LLM)     │
- │  foto/PDF → Leitor    perfil do idoso             raciocina e      │
- │  áudio → STT          lista de remédios versionada  escolhe a      │
- │  estado do banco      histórico da conversa         próxima ação   │
- │  eventos (lembrete)   pendências (itens não confirmados)           │
+ │  NÚCLEO (código, ordem fixa)                                       │
+ │  percepção (áudio → STT) · regras fixas (alarme → 192, sem agente) │
+ │  contexto do banco (perfil, lista versionada, histórico, pendências)│
  │                                │                                   │
- │                    LOOP DE DECISÃO (Orquestrador)                  │
- │          observa → decide → chama ferramenta → observa → responde  │
+ │            ┌───────────────────┼────────────────────┐              │
+ │            ▼                   ▼                    ▼              │
+ │   FLUXO DE LEITURA      EQUIPE DA SERI       FLUXO DO DIÁRIO       │
+ │   (foto/PDF, fixo)      (conversa livre)     (sintoma, fixo)       │
+ │   Leitor: transcreve    coordenadora         Diário: estrutura     │
+ │     ↓                   encaminha a um:        ↓                   │
+ │   Intérprete:           · Rotina             regras de gravidade   │
+ │   interpreta            · Explicador (E8)      ↓                   │
+ │     ↓                   · Diário             Escalonador           │
+ │   normalizar +          · Agenda (E2)         (192 · 24h + resumo  │
+ │   conciliar (E1) +      · Farmácia (E4)        · observar)         │
+ │   checar_lista                                                     │
+ │     ↓                   EVENTOS AGENDADOS (agendador de A)         │
+ │   proposta com o que    véspera da consulta → Preparador (E2)      │
+ │   mudou, para confirmar verificação diária → estoque, receita (E4) │
  │                                │                                   │
- │  FERRAMENTAS (ações)                                               │
- │  normalizar · checar_lista · avaliar_gravidade   ← dados (C)       │
- │  salvar_lista_confirmada · agendar_lembrete · registrar_dose       │
- │  registrar_sintoma · gerar_resumo · escalar      ← API (A)         │
+ │  FERRAMENTAS (cada agente só recebe as suas)                       │
+ │  normalizar · checar_lista · avaliar_gravidade · info_remedio ← C  │
+ │  consultar_lista · registrar_dose · alterar_cronograma             │
+ │  salvar_lista_confirmada · registrar_sintoma · gerar_resumo        │
+ │  registrar_consulta · registrar_estoque                     ← A    │
  │                                │                                   │
- │  GUARDRAILS                                                        │
- │  regras fixas antes do modelo (192) · confirmação humana para      │
- │  ações que mudam a lista · Auditor em toda saída                   │
+ │  MODELOS: API da OpenAI (visão e conversa) · voz local             │
+ │                                │                                   │
+ │  GUARDRAILS (código, fora dos agentes)                             │
+ │  regras fixas (192) · confirmação humana para ações que mudam a    │
+ │  lista · Auditor em toda saída · frases fixas de conduta           │
  └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -75,25 +93,36 @@ O sistema tem três camadas: a **plataforma** (o que a cuidadora vê), o **harne
 
 **Harness** é tudo o que envolve o modelo para que ele **perceba o ambiente, tome decisões e realize ações**, deixando de ser apenas um gerador de texto. O modelo sozinho só responde a um texto. Com o harness, ele vê a foto da receita, lembra o que o idoso toma, consulta a base de interações, agenda o lembrete e decide quando escalar, sempre dentro de regras que ele não consegue furar.
 
-> Nas referências em `docs/`, essas peças aparecem como "agentes" (Leitor, Orquestrador, Diário, Auditor...). Aqui elas são **componentes de um único harness**. O argumento do plano para a banca continua valendo: cada componente tem entrada e saída próprias, e o Auditor é um verificador independente.
+> Nas referências em `docs/`, essas peças aparecem como "agentes" (Leitor, Orquestrador, Diário, Auditor...). Com o Agno, parte delas volta a ser **agente de verdade** (subagentes com tarefa, instruções e ferramentas próprias) e parte fica como **código determinístico** (regras fixas, Escalonador, Auditor). O argumento do plano para a banca continua valendo: cada componente tem entrada e saída próprias, e o Auditor é um verificador independente.
 
 | Camada do harness | Componente | O que faz | Tipo | Dono |
 |---|---|---|---|---|
-| **Percepção** | **Leitor** | Foto de receita física (impressa ou à mão), foto de caixa e PDF → itens estruturados com confiança | LLM com visão | B |
+| **Percepção** | **Leitor** | **Transcreve** a foto de receita física (impressa ou à mão) ou de caixa, sem interpretar | Subagente (LLM com visão) | B |
+| | **Intérprete** | **Interpreta** a transcrição ou o texto do PDF: nome, concentração, forma, horários e confiança | Subagente (LLM) | B |
 | | **Escuta** | Áudio da cuidadora → texto (STT) | Voz | B |
 | | **Contexto** | Lê do banco o perfil, a lista atual, as doses e o diário antes de cada decisão | Leitura de estado | B (sobre funções de A) |
-| **Memória e estado** | **Memória** | Perfil do idoso, lista de remédios versionada, histórico da conversa, pendências | Banco | A (schema) + B (uso) |
-| **Decisão** | **Orquestrador** | Loop: recebe as observações, decide a próxima ação, chama ferramentas, observa o resultado e responde | LLM + tool use | B |
+| **Memória e estado** | **Memória** | Perfil do idoso, lista de remédios versionada, histórico da conversa, pendências. É a única memória: os agentes não guardam estado | Banco | A (schema) + B (uso) |
+| **Decisão** | **Seri (coordenadora)** | Lê a mensagem e encaminha ao subagente certo (equipe do Agno) | Subagente (LLM) | B |
+| | **Fluxos fixos** | Leitura e diário em ordem fixa, sem o modelo escolher os passos (HA-D1) | Workflow do Agno | B |
+| **Subagentes de tarefa** | **Rotina** | Dúvidas e ações sobre lista, horários e doses dadas | Subagente (LLM + ferramentas) | B |
+| | **Explicador** | Explica a lista, os alertas e **para que serve cada remédio** (E8), só com fatos das ferramentas | Subagente (LLM + ferramentas) | B |
+| | **Diário** | Estrutura o relato de sintoma e pergunta o que falta | Subagente (LLM) | B |
+| | **Agenda** (E2) | Registra consultas e estrutura o relato do que o médico disse | Subagente (LLM + ferramentas) | B |
+| | **Preparador** (E2) | Escolhe e escreve as perguntas para a consulta, a partir dos fatos levantados | Subagente (LLM) | B |
+| | **Farmácia** (E4) | Estoque, quando o remédio acaba, validade da receita e Farmácia Popular | Subagente (LLM + ferramentas) | B |
 | **Ações (ferramentas)** | **Normalizador** | Nome comercial → princípio ativo (Anvisa/CMED) | Determinístico | C |
 | | **Farmacovigilante** | **Regional:** mesmo princípio ativo em nomes diferentes + tabela curada (interações, duplicidade de classe, CBMPI). **Final:** bases completas, Beers, RAG em bulas | Determinístico | C |
 | | **Regras de gravidade** | Sintoma estruturado → conduta (192, 24h, observar) | Determinístico | C |
-| | **Rotina** | Salvar lista confirmada, montar cronograma, agendar lembrete, registrar dose | Determinístico | A (API) |
-| | **Diário + Escalonador** | Registrar sintoma, perguntar o que falta, gerar o resumo e escalar | LLM + regras | B |
+| | **Informação do remédio** (E8, E4) | Para que serve, Farmácia Popular, tipo e validade da receita (C8) | Determinístico (tabela com fonte) | C |
+| | **Conciliação** (E1) | Compara a receita nova com a lista: novo, mantido, alterado, ausente | Determinístico | B |
+| | **Estoque e validade** (E4) | Calcula quando o remédio acaba e quando a receita vence | Determinístico | B |
+| | **Ferramentas de rotina (API)** | Salvar lista confirmada, montar cronograma, agendar lembrete, registrar dose | Determinístico | A (API) |
+| | **Escalonador** | Conduta → frase fixa, resumo e link para o profissional | Regras | B |
 | | **Fala** | Texto do lembrete → áudio (TTS) | Voz | B |
-| **Guardrails** | **Regras fixas** | Sinal de alarme vai para "ligue 192" sem passar pelo modelo | Determinístico | B + C |
+| **Guardrails** | **Regras fixas** | Sinal de alarme vai para "ligue 192" sem passar por nenhum agente | Determinístico | B + C |
 | | **Confirmação humana** | Ações que mudam a lista ou o cronograma só valem depois do "confirmo" da cuidadora | Fluxo fixo | B |
 | | **Auditor** | Bloqueia saída com remédio fora da lista, frase proibida ou fato clínico sem fonte | Verificador independente | B |
-| **Observabilidade** *(P1, D21)* | **Registro de passos** | Guarda cada observação, ferramenta chamada, resultado e bloqueio do Auditor | Log | B |
+| **Observabilidade** *(P1, D21)* | **Registro de passos** | Guarda cada agente acionado, ferramenta chamada, resultado e bloqueio do Auditor | Log | B |
 
 Fora do harness ficam a **plataforma e a API** (Pessoa A) e a **avaliação** (Pessoa C), que mede o harness de fora.
 
@@ -105,7 +134,9 @@ Fora do harness ficam a **plataforma e a API** (Pessoa A) e a **avaliação** (P
 | Entrada | **Foto da receita física (impressa ou à mão)** + fotos de caixas + PDF de receita digital, sempre com confirmação | Código de barras da caixa |
 | Normalização | ~20 remédios (D16) | Ampliada |
 | Checagem | **Mesmo princípio ativo** em nomes diferentes (sai do Normalizador) + **tabela curada** com os remédios da demo, **gerada e conferida com LLM** (D7.2, D15.4): pares de interação, grupos para duplicidade de classe e itens do CBMPI, cada linha com fonte | Base de interações completa e licenciada; conversão de nomes PT → internacional em escala; CBMPI completo + Beers; RAG em bulas; efeito adverso × sintoma relatado |
-| Rotina | Lembrete por notificação (texto e áudio); confirmação de dose | Aviso de estoque e renovação de receita |
+| Rotina | Lembrete por notificação (texto e áudio); confirmação de dose; **aviso de estoque e de receita vencendo + Farmácia Popular** (E4, 24/10) | Push agendado de todos os avisos |
+| Remédios | **Para que serve cada um** (E8); **conciliação a cada receita nova** (E1) | Revisão das tabelas por profissional |
+| Consultas | **Preparo da consulta** (página na véspera) e **registro do que o médico disse** (E2) | Envio direto ao profissional pelo painel |
 | Diário | Áudio → sintoma → regra de gravidade | Tendências ("3 dias de tontura") |
 | Escalonamento | Resumo em PDF + link sem conta para o profissional (D9) | Painel do farmacêutico ou da enfermeira com fila de casos |
 | Prova | Avaliação (seção 2.4) + 5 a 10 entrevistas | Piloto de 2 semanas com 5–10 famílias + carta de intenção |
@@ -114,10 +145,11 @@ Fora do harness ficam a **plataforma e a API** (Pessoa A) e a **avaliação** (P
 
 1. Nunca sugere dose, troca ou suspensão. Todo alerta termina em "leve ao farmacêutico ou médico", e o Auditor bloqueia frases proibidas.
 2. Nada vira cronograma sem a confirmação da cuidadora.
-3. Fatos clínicos vêm só de ferramenta (interações, CBMPI, bula), com fonte citada. O LLM só explica.
+3. Fatos clínicos vêm só de ferramenta (interações, CBMPI, bula, **para que serve**), com fonte citada. O LLM só explica.
+3a. Na conciliação (E1), a Seri **nunca sugere tirar ou manter** um remédio: mostra a diferença e pergunta. "Não sei" mantém o remédio e vira pergunta para a consulta. Relato falado do que o médico disse não muda a lista; só a receita muda.
 4. Sinal de alarme não passa pelo LLM. Queda com batida na cabeça, dor no peito, falta de ar ou confusão súbita → regra fixa "ligue 192".
 5. Na dúvida, chama um humano: se a leitura vier com confiança baixa, o agente pede outra foto ou encaminha ao farmacêutico.
-6. LGPD: consentimento específico (registrado na própria plataforma), dados mínimos, nada compartilhado com a operadora para fins de preço.
+6. LGPD: consentimento específico (registrado na própria plataforma), dados mínimos, nada compartilhado com a operadora para fins de preço. **Desde 24/10, o termo informa que foto, receita e transcrição do áudio são processadas pela OpenAI.**
 
 ### 2.4 Como medimos (avaliação)
 
@@ -131,7 +163,8 @@ A avaliação mede o harness **de fora**, com conjuntos de casos e metas. É fei
 | Leitura de receita impressa (foto) | 10 fotos (D19) | ≥ 95% |
 | Interações e duplicidades | 30 pares dentro dos remédios da tabela curada, conferidos com LLM no regional (D15.4) | Recall ≥ 90% |
 | Escalonamento | 20 relatos com conduta certa, conferidos com LLM no regional (D15.4) | 100% dos alarmes → 192 |
-| Guardrail | 20 tentativas de arrancar dose | 0 respostas com dose |
+| Guardrail | 20 tentativas de arrancar dose (incluindo pedidos de tirar remédio na conciliação) | 0 respostas com dose, troca ou suspensão |
+| Conciliação (E1, 24/10) | 10 casos: lista antes + receita nova | Mudanças certas em ≥ 90% (P1) |
 
 ### 2.5 Mobile em primeiro lugar
 
@@ -160,13 +193,13 @@ Características que a área da cuidadora precisa ter (detalhes e decisões na D
 | Eixo | Situação | Comentário |
 |---|---|---|
 | **Prazo** | 🔴 **Crítico** | *(leitura minha)* Trilha **Goiânia, regional em 24/10** (D11), com o repositório ainda sem código em 23/10. O escopo foi mantido (D16), com P0/P1 e a regra de que o P1 que sobrar vai para a final. |
-| **Plataforma própria** | 🟢 Viável | *(leitura minha)* Sem cadastro na Meta, sem templates e sem número de teste. Navegadores modernos já fazem tudo de que precisamos: câmera e upload de arquivo, gravação de áudio e notificações push. O Web Push usa chaves que nós mesmos geramos, sem conta em terceiros. Com o modelo open-source local (D3), **nenhuma chave de API** é necessária no regional. |
+| **Plataforma própria** | 🟢 Viável | *(leitura minha)* Sem cadastro na Meta, sem templates e sem número de teste. Navegadores modernos já fazem tudo de que precisamos: câmera e upload de arquivo, gravação de áudio e notificações push. O Web Push usa chaves que nós mesmos geramos, sem conta em terceiros. Desde 24/10, a única chave de terceiros é a da **API da OpenAI** (D3 atualizada). |
 | **Notificação de lembrete** | 🟡 | *(leitura minha)* No iPhone, o push web só funciona se a plataforma for instalada na tela inicial (iOS 16.4+). No Android funciona direto no navegador. Na demo, o lembrete pode ser disparado na hora. |
 | **Leitura** | 🟡 / 🔴 | Foto de receita impressa, caixa e PDF digital trazem texto impresso, e o modelo deve ler bem. *(leitura minha)* **A receita à mão agora está no caminho principal**, e é a entrada que os modelos leem pior (F1 ≈ 7,6% num estudo de 2024, sem ajuste fino). A confirmação obrigatória e o pedido de nova foto (ou da caixa) quando a confiança for baixa viram peças centrais da segurança. Ver D19. |
 | **Normalização** | 🟢 Viável | Base da Anvisa e CMED são públicas. Falta checar o campo de princípio ativo no dicionário de dados. |
 | **Farmacovigilância** | 🟢 Regional / 🟡 Final | **Regional:** viável. A checagem de mesmo princípio ativo sai do Normalizador, e a tabela curada é pequena (~20 remédios) e gerada com LLM (D7.2). **Final:** é aqui que ficam as partes trabalhosas. DDInter e DrugBank só valem para uso não comercial, então é preciso licença. Bulas da Anvisa não têm API. O CBMPI precisa ser transcrito por completo. É preciso converter os nomes dos princípios ativos do português para o nome internacional, porque as bases de interação estão em inglês. |
 | **Voz** | 🟢 Viável | STT do áudio gravado na plataforma; TTS do lembrete tocado na plataforma. |
-| **Modelo local em CPU** | 🟡 / 🔴 | *(leitura minha)* Modelos open-source locais (D3) em máquina sem GPU (D22): sem chave e sem dado saindo para um provedor de IA, mas modelos pequenos leem pior (sobretudo a receita à mão) e cada foto pode levar bem mais que alguns segundos. Mitigações na `spec.md` §3: processamento assíncrono, imagem reduzida, teste de bancada dos modelos e vídeo de backup da demo. |
+| **Modelos da OpenAI** (24/10) | 🟢 / 🟡 | *(leitura minha)* Leitura e conversa bem melhores e mais rápidas que modelos pequenos em CPU, inclusive na receita à mão (ainda o maior risco). Em troca: custo por chamada (a conferir no teste de bancada), dependência de internet e da conta da OpenAI no dia da demo, e dado de saúde saindo para um provedor fora do Brasil (termo de consentimento e política de dados da API). Mitigações: limite de gasto na conta, imagem reduzida, vídeo de backup da demo. |
 | **Regulatório** | 🔴 Risco na final | Possível SaMD (RDC 657/2022 e 751/2022, provável classe II). O agente organiza e encaminha; o farmacêutico decide. Buscar parecer de especialista. |
 | **LGPD** | 🟡 | Dado de saúde é sensível. *(leitura minha)* Com plataforma própria, a guarda dos dados é nossa: login, controle de acesso e armazenamento passam a ser responsabilidade do projeto. |
 | **Adoção** | 🟡 Novo risco | *(leitura minha)* O plano apoiava o engajamento no "sem app para baixar, tudo no WhatsApp". Com plataforma própria, a cuidadora precisa abrir e, idealmente, instalar mais uma ferramenta. Vale perguntar isso nas entrevistas. |
@@ -209,6 +242,9 @@ Características que a área da cuidadora precisa ter (detalhes e decisões na D
 
 | Data | Mudança (pedida pelo usuário) | Motivo | Partes do plano afetadas |
 |---|---|---|---|
+| 24/10/2026 | **Modelos da API da OpenAI** (chave do time) no lugar dos modelos open-source locais. A voz continua local (faster-whisper e Piper). Substitui a linha de 23/10 sobre modelos locais. | O time passou a ter uma chave da OpenAI | Arquitetura (§2.1), stack e privacidade (00-projeto/spec §2, §3 e §7.3), D3 e D22, termo de consentimento, custos do BMC, spec e orientações do harness. |
+| 24/10/2026 | **Quatro funcionalidades novas no regional (D23):** **E8** para que serve cada remédio; **E1** conciliação a cada receita nova; **E2** preparo da consulta e registro do que o médico disse; **E4** estoque, validade da receita e Farmácia Popular (antes previsto para a final, D16.2). E3, E5, E6 e E7 ficam fora. | O escopo resolvia pouco do dia a dia da cuidadora e podia ser trocado por um alarme no celular (teste de remoção) | §1 e §2 da visão, contratos (C1, C5, C6, C8), todas as frentes, roteiro da demo (00-projeto/spec §8), escopo-por-fase. |
+| 24/10/2026 | **Harness multiagente com o framework Agno.** O loop próprio em Python (e a migração para LangGraph na final) dá lugar a um sistema em que a coordenadora (Seri) encaminha a subagentes especializados por tarefa (Leitor, que transcreve; Intérprete, que interpreta; Rotina; Explicador; Diário), com leitura e diário em fluxos fixos. Regras fixas, confirmação humana e Auditor continuam em código, fora dos agentes. Os contratos C1–C7 não mudam. | Orquestração de subagentes divididos pelas tarefas | Arquitetura (§2.1), stack (00-projeto/spec §2, D5), spec e checklist do harness. Aproxima a arquitetura dos "7 agentes" do plano. |
 | 23/10/2026 | **Normalizador com ~20 remédios** no regional (eram ~50). | Prazo do regional | §4.3 do plano (lista dos 50), Parte 7. O restante vai para a final. |
 | 23/10/2026 | **PWA instalável já no regional** (era P1). O push agendado continua P1. | Experiência de app no celular desde a demo | Tabela P0/P1 (D16). |
 | 23/10/2026 | **Conferência clínica com LLM no regional:** a tabela curada, os pares de interação e os relatos de sintoma são gerados e conferidos com LLM. Revisão por profissional na final, se necessário. | O time não tem ninguém da saúde; o objetivo do regional é o sistema funcionar na demo | §4.5 do plano ("30 pares conferidos por farmacêutico", relatos), curadoria da tabela (D7). |

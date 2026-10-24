@@ -13,3 +13,10 @@
 - [ ] **P0** — `regras_gravidade.csv` + `avaliar_gravidade` (C4) + testes (§7.2)
 - [ ] **P0** — `validar_tabelas.py` e `tabelas/LEIAME.md` (como as tabelas foram feitas)
 - [ ] **P0** — Entregar para B: funções reais no lugar dos stubs
+
+## Funcionalidades de 24/10 (E4, E8)
+
+- [ ] **P0** — `indicacoes.csv` para os ~20 remédios, gerada e conferida com LLM, com fonte (E8)
+- [ ] **P0** — `farmacia_popular.csv` a partir da página oficial do programa, com a data (E4)
+- [ ] **P1** — `tipos_receita.csv` e a coluna `tipo_receita` em `remedios.csv` (E4)
+- [ ] **P0** — `info_remedio` (C8) + testes

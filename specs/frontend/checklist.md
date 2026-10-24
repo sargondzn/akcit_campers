@@ -38,3 +38,12 @@
 - [ ] **P0** — Deploy na Netlify com redirecionamento de SPA e `VITE_API_URL`
 - [ ] **P0** — Roteiro da demo testado em Android e iPhone reais, com o app instalado (00-projeto/spec §8)
 - [ ] **P1** — Push: permissão, inscrição VAPID, recebimento com o app fechado
+
+## Funcionalidades de 24/10 (E1, E2, E4, E8)
+
+- [ ] **P0** — "Para que serve" e selo do Farmácia Popular na tela Remédios e no cartão da lista (E8, E4)
+- [ ] **P0** — Cartão da lista com mudanças e os botões de decisão (E1)
+- [ ] **P0** — Botões de escopo da receita ("Toda a lista", "Só desse médico", "Um remédio a mais") (E1)
+- [ ] **P0** — Consultas na aba Rotina e cartão `consulta_preparada` (E2)
+- [ ] **P0** — Cartão `aviso_estoque`, "Dura até" e "Receita vence em" na tela Remédios (E4)
+- [ ] **P0** — Termo de consentimento citando o processamento pela OpenAI

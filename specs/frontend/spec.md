@@ -2,6 +2,7 @@
 
 > **Dona:** Pessoa A (Beatriz) · **Status:** 🟡 escrita em 23/10/2026 a partir de D1, D9, D16, D17, D18, D20 e D22. Os padrões marcados com **(FE-Dn)** valem até resposta em contrário na [`discussao.md`](discussao.md).
 > Regras gerais, contratos e arquitetura: [`00-projeto/spec.md`](../00-projeto/spec.md). Requisitos mobile: [`visao.md` §2.5](../00-projeto/visao.md).
+> **Atualização de 24/10/2026** (pedido do usuário, escrita por B): modelos da OpenAI no lugar dos locais (D3) e funcionalidades E1, E2, E4 e E8 (D23). As partes novas estão marcadas com **(24/10)**. **A revisa** e ajusta os detalhes de implementação.
 
 ---
 
@@ -24,11 +25,12 @@ Barra inferior fixa com as abas **Conversa · Remédios · Rotina**. A aba **Di�
 | Tela | Conteúdo | Prioridade |
 |---|---|---|
 | **Entrar / Criar conta** | E-mail + senha (mínimo 8 caracteres). Erros em frase simples | P0 |
-| **Consentimento** | Texto do termo (**FE-D3**), caixa "Li e concordo" e botão "Continuar". Sem aceite, nada mais abre. Envia a versão do termo aceita | P0 |
+| **Consentimento** | Texto do termo (**FE-D3**), caixa "Li e concordo" e botão "Continuar". Sem aceite, nada mais abre. Envia a versão do termo aceita. **(24/10)** O termo diz que foto, receita e transcrição do áudio são processadas pela OpenAI e que o áudio fica na nossa máquina | P0 |
 | **Idoso** | Um campo: apelido do idoso ("Como você chama a pessoa que você cuida?") | P0 |
 | **Conversa** (início) | Mensagens da Seri e da cuidadora; barra de envio (§4); indicador "a Seri está lendo a receita…" enquanto houver mensagem `processando` | P0 |
-| **Remédios** | Lista confirmada atual (versão e data); itens "não confirmados" em seção separada, com aviso "confirme com o farmacêutico" | P0 |
+| **Remédios** | Lista confirmada atual (versão e data); itens "não confirmados" em seção separada, com aviso "confirme com o farmacêutico". **(24/10)** Em cada item: **"Para que serve"** (frase do C8 + "o motivo exato, só o médico que receitou pode dizer"); selo **"Grátis no Farmácia Popular"** quando houver; **"Dura até <dia>"** (estoque) e **"Receita vence em <dia>"** quando houver; botão "Comprei mais" (abre a conversa com o teclado) | P0 |
 | **Rotina** | Horários de hoje com "Tomei" / "Não tomei" | P0 (versão simples) |
+| **Consultas** **(24/10)** | Dentro da aba Rotina: próximas consultas (data, hora, profissional) e as anteriores, com "Abrir a página da consulta" quando houver preparo. Marcar consulta é pela conversa ("Tenho consulta…") | P0 |
 | **Rotina completa** | Semana, histórico de doses | P1 |
 | **Diário** | Sintomas registrados e a conduta de cada um | P1 |
 | **Instalar o app** | Android: botão que usa o `beforeinstallprompt`. iPhone: passo a passo ilustrado ("Compartilhar → Adicionar à Tela de Início"). Aparece na primeira entrada e no menu; some quando o app já está instalado (`display-mode: standalone`) | P0 |
@@ -38,11 +40,13 @@ Barra inferior fixa com as abas **Conversa · Remédios · Rotina**. A aba **Di�
 | `tipo` | Visual |
 |---|---|
 | `texto` | Balão da Seri. Se tiver `audio`, botão "▶ Ouvir" |
-| `lista_para_confirmar` | Cartão com um item por linha: nome, princípio ativo, concentração, horários. Item com `confianca` baixa ganha a etiqueta "conferir"; `nao_confirmado`/`ilegivel` em cinza com o aviso. Alertas embutidos no fim do cartão. Botões vindos de `botoes` (ex.: "Confirmo a lista", "Corrigir um item") |
+| `lista_para_confirmar` | Cartão com um item por linha: nome, princípio ativo, concentração, horários e **"para que serve"** (`info`, 24/10). Item com `confianca` baixa ganha a etiqueta "conferir"; `nao_confirmado`/`ilegivel` em cinza com o aviso. Alertas embutidos no fim do cartão. Botões vindos de `botoes` (ex.: "Confirmo a lista", "Corrigir um item"). **(24/10) Com `mudancas` (E1):** itens agrupados em **Novos**, **Mudou** ("Antes: … · Agora: …"), **Não veio nesta receita** (com os 3 botões "Continua", "O médico tirou", "Não sei" em cada item, que enviam `decidir_item`) e **Sem mudança** (recolhido) |
 | `alertas` | Cartão amarelo: descrição, fonte e a frase fixa "Leve ao farmacêutico ou médico antes de mudar qualquer coisa" |
 | `pedido_de_foto` | Balão + botões de `botoes` (`abre: camera/galeria/teclado/gravar`) |
 | `ligue_192` | Cartão **vermelho**, ocupando a largura, com botão grande "Ligar 192" (`tel:192`) |
 | `resumo` | Cartão com "Abrir PDF" e "Enviar para o profissional" (Web Share API com a `url_publica`; sem suporte, botão "Copiar link") |
+| `consulta_preparada` **(24/10)** | Cartão da consulta (data, hora, profissional) com "Abrir a página" e "Enviar para o profissional", como o `resumo` |
+| `aviso_estoque` **(24/10)** | Cartão laranja: remédio, "deve acabar por volta de <dia>" ou "receita vence em <dia>", texto do Farmácia Popular quando houver, botão "Comprei mais" |
 
 Botões com `acao` enviam uma `MensagemEntrada` do tipo `acao`. Depois de usados, ficam desabilitados.
 
@@ -112,4 +116,4 @@ Fixa na parte de baixo, ao alcance do polegar: **[📷 Foto] [📄 PDF] [🎤 Á
 
 ## 9. Fora do regional
 
-Painel do profissional (computador), telas completas de rotina e diário (P1), push agendado (P1), aviso de estoque (final).
+Painel do profissional (computador), telas completas de rotina e diário (P1), push agendado (P1).

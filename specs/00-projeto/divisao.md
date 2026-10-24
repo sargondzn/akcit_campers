@@ -15,8 +15,8 @@ Cada pessoa é **dona de um pedaço do sistema**, com pastas próprias no códig
 | | **A — Beatriz (Plataforma)** | **B — Caio (Harness agêntico)** | **C — Roberto (Dados, avaliação e negócio)** |
 |---|---|---|---|
 | **Frentes em `specs/`** | [`frontend`](../frontend/spec.md), [`backend`](../backend/spec.md) | [`harness`](../harness/spec.md) | [`dados`](../dados/spec.md), [`avaliacao`](../avaliacao/spec.md), [`negocio`](../negocio/spec.md) |
-| **É dona(o) de** | Interface da cuidadora (PWA mobile-first), API, contas, banco, arquivos, fila de mensagens, agendador de lembretes, PDF e link do resumo, Docker, túnel e deploy | Tudo o que transforma o modelo em agente ([`visao.md` §2.1](visao.md)): percepção (Leitor, STT), uso da memória, loop do Orquestrador, registro de ferramentas, Diário + Escalonador, guardrails (regras fixas, confirmação humana, Auditor), cliente do LLM, voz (TTS), registro de passos | Ferramentas de dados que o harness chama (Normalizador, Farmacovigilante, sinais de alarme, regras de gravidade), a **avaliação** do harness e os materiais de **negócio** |
-| **Entrega para os outros** | `contratos/`, esqueleto do repositório e Docker (para todos); `Repositorio` do C6 (para B); endpoint que chama o harness | `processar_mensagem` e `falar` (para A); `Resumo` (para A); C7 (para C) | `normalizar`, `checar_lista`, `detectar_alarme`, `avaliar_gravidade` (para B); relatório de métricas e pitch (para todos) |
+| **É dona(o) de** | Interface da cuidadora (PWA mobile-first), API, contas, banco, arquivos, fila de mensagens, agendador de lembretes, PDF e link do resumo, Docker, túnel e deploy | Tudo o que transforma o modelo em agente ([`visao.md` §2.1](visao.md)): sistema multiagente em Agno com os modelos da OpenAI (coordenadora e subagentes Leitor, Intérprete, Rotina, Explicador, Diário, Agenda, Preparador e Farmácia), conciliação (E1), preparo da consulta (E2), cálculo de estoque e validade (E4), STT, uso da memória, registro de ferramentas, Escalonador, guardrails (regras fixas, confirmação humana, Auditor), cliente do LLM, voz (TTS), registro de passos | Ferramentas de dados que o harness chama (Normalizador, Farmacovigilante, sinais de alarme, regras de gravidade), a **avaliação** do harness e os materiais de **negócio** |
+| **Entrega para os outros** | `contratos/`, esqueleto do repositório e Docker (para todos); `Repositorio` do C6 (para B); endpoint que chama o harness | `processar_mensagem`, `processar_evento` e `falar` (para A); `Resumo` (para A); C7 (para C) | `normalizar`, `checar_lista`, `detectar_alarme`, `avaliar_gravidade` (para B); `info_remedio` (C8, para B e A); relatório de métricas e pitch (para todos) |
 | **Trabalha com stub de** | Harness (respostas fixas) | Ferramentas de dados; `RepositorioEmMemoria` | Nenhum: as funções são puras e testáveis sozinhas |
 
 A experiência de cada um não define a divisão: cada pessoa resolve os problemas da própria frente do seu jeito (D12.1).
@@ -52,7 +52,8 @@ Ficam em `contratos/` no código e estão detalhados em [`spec.md`](spec.md) §5
 | C4 | B → C | `detectar_alarme(texto) → Conduta | None` e `avaliar_gravidade(sintoma) → Conduta` |
 | C5 | B → A | `Resumo` → PDF + link público |
 | C6 | A → B | `Repositorio`: leitura do contexto e ações usadas como ferramentas |
-| C7 | C → B | A avaliação chama o harness inteiro e os componentes (`leitor`, `auditor`, `diario`) |
+| C7 | C → B | A avaliação chama o harness inteiro e os componentes (`leitor`, `auditor`, `diario`, `conciliacao`) |
+| C8 | B e A → C | `info_remedio(principio_ativo) → InfoRemedio`: para que serve, Farmácia Popular, tipo e validade da receita (24/10) |
 
 ---
 
