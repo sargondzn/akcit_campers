@@ -11,7 +11,10 @@
 
 **Recomendação:** usar a frase da visão §1 no regional.
 
-**Resposta:**
+**Resposta:** aprovada em 24/10/2026. Abrir com a frase da dor e fechar com a frase da visão §1 (com "da receita"):
+
+- Abertura: "Quem cuida de um idoso carrega os remédios, os horários e os sintomas na cabeça. A Seriema tira isso da sua cabeça."
+- Fechamento: "Mande a foto da receita e um áudio do dia. A Seriema organiza tudo, lembra por você e avisa quando algo precisa de um profissional."
 
 ---
 
@@ -21,7 +24,7 @@
 
 **Pergunta:** quem fala e quem opera? Em qual celular (Android ou iPhone)?
 
-**Resposta:**
+**Resposta:** aprovada em 24/10/2026 (baixa prioridade). Roberto fala; Beatriz mostra a demo; Caio fica de reserva para o harness e o vídeo de backup. A demo provavelmente será no computador, simulando o fluxo, então Android ou iPhone não importa para o regional. Falta só avisar Beatriz e Caio.
 
 ---
 
@@ -31,4 +34,4 @@
 
 **Pergunta:** qual ferramenta o time vai usar?
 
-**Resposta:**
+**Resposta:** aprovada em 24/10/2026 (baixa prioridade). Canva, com exportação em PDF para `negocio/pitch/`.
