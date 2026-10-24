@@ -1,4 +1,4 @@
-"""Tipos dos contratos C2, C3 e C4 (spec 00-projeto, §5).
+"""Tipos dos contratos C2, C3, C4 e C8 (spec 00-projeto, §5).
 
 Versão mínima criada por C para destravar a frente `dados`. Os nomes e campos
 seguem a spec; mudanças só com o acordo dos três.
@@ -46,3 +46,16 @@ class Conduta(BaseModel):
     regra_id: str
     motivo: str
     fonte: str
+
+
+class InfoRemedio(BaseModel):
+    """C8 (24/10): o que se sabe de um remédio, só de tabela com fonte."""
+    principio_ativo: str
+    para_que_serve: str                      # frase simples de uso comum: "controlar a pressão alta"
+    farmacia_popular: bool = False
+    farmacia_popular_detalhe: str | None = None      # indicação do programa, se houver
+    documentos_farmacia_popular: list[str] = []      # ["a receita", "um documento oficial com foto e CPF"]
+    tipo_receita: Literal["simples", "controle_especial", "antimicrobiano"] | None = None
+    validade_receita_dias: int | None = None
+    fonte: str
+    conferencia: Literal["llm", "profissional"]

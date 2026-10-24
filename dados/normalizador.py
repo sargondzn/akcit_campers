@@ -147,3 +147,16 @@ def normalizar(nome: str) -> ResultadoNormalizacao:
     if len(grupo) > 1:
         return _ambiguo(nome, grupo, concentracao, fonte)
     return _montar(nome, grupo, concentracao, comercial(chave), fonte)
+
+
+def nomes_conhecidos() -> set[str]:
+    """Todos os nomes que o Normalizador reconhece (princípios ativos, nomes comerciais e apelidos), normalizados.
+
+    Usado pelo Auditor do harness para achar remédio citado fora da lista da cuidadora.
+    """
+    sinonimos, comerciais, principios, _ = _tabelas()
+    nomes = set(sinonimos) | set(comerciais) | set(principios)
+    for conjunto in comerciais.values():
+        for p in conjunto:
+            nomes.update(p.split(";"))
+    return nomes

@@ -51,9 +51,9 @@ def detectar_alarme(texto: str) -> Conduta | None:
 #
 # `condicao` em regras_gravidade.csv: termos ligados por `&` (todos) e `|` (qualquer);
 # o `&` pesa mais que o `|`. Termos:
-#   s:<sintoma>   o sintoma aparece nos `sintomas` ou na `descricao` ("_" vale espaço)
-#   sinal:<chave> `sinais[chave]` é verdadeiro
-#   int:<nivel>   intensidade igual ou maior (leve < moderada < forte)
+#   s:<sintoma>   o termo do vocabulário (ou um sinônimo) aparece nos `sintomas` ou na `descricao`
+#   sinal:<chave> `sinais[chave]` é verdadeiro, ou um sinônimo do vocabulário aparece na `descricao`
+#   int:<nivel>   intensidade igual ou maior (leve < moderada < forte); sem `intensidade`, usa pistas da fala
 # ---------------------------------------------------------------------------
 INTENSIDADES = {"leve": 1, "moderada": 2, "forte": 3}
 PADRAO_OBSERVAR = Conduta(
@@ -83,14 +83,77 @@ def interpretar_condicao(condicao: str) -> list[list[tuple[str, str]]]:
     return alternativas
 
 
-def _termo_casa(tipo: str, valor: str, texto: str, sintoma) -> bool:
+# Negação só vale para o texto livre (`descricao`): "sem febre" não conta como febre. O que o Diário
+# lista em `sintomas` é confiado como está. Os sinais de alarme (192) NÃO usam isto (DA-D2).
+NEGACAO = re.compile(r"\b(sem|nao teve|nao tem|nao tinha|nao esta com|nao esta sentindo|nao apresentou|nunca teve)\s+(?:\w+\s+){0,2}$")
+
+
+def _padrao(alternativas: list[str]) -> re.Pattern:
+    """Alternativas do vocabulário -> regex. `*` no fim vale "começa com"; sem `*`, palavra inteira.
+    ` % ` no meio vale "até 5 palavras quaisquer aqui" ("fezes % pretas" casa "fezes dele estão pretas")."""
+    partes = []
+    for alt in alternativas:
+        alt = alt.strip()
+        if not alt:
+            continue
+        prefixo = alt.endswith("*")
+        miolo = r"(?:\s+\w+){0,5}\s+".join(re.escape(x) for x in alt.rstrip("*").split(" % "))
+        partes.append(miolo + ("" if prefixo else r"(?![a-z])"))
+    return re.compile(r"(?<![a-z])(?:" + "|".join(partes) + ")")
+
+
+@lru_cache(maxsize=1)
+def _vocabulario_motor() -> dict[tuple[str, str], dict]:
+    """(tipo, termo) -> {'padrao', 'exclusoes'}, de vocabulario.csv."""
+    saida = {}
+    with open(TABELAS / "vocabulario.csv", encoding="utf-8") as f:
+        for linha in csv.DictReader(f):
+            alternativas = [linha["termo"].replace("_", " "), *linha["sinonimos"].split("|")]
+            exclusoes = [e for e in linha["exclusoes"].split("|") if e.strip()]
+            saida[(linha["tipo"], linha["termo"])] = {
+                "padrao": _padrao(alternativas),
+                "exclusoes": _padrao(exclusoes) if exclusoes else None,
+            }
+    return saida
+
+
+def _aparece(tipo: str, termo: str, descricao: str, sintomas: list[str]) -> bool:
+    """O termo (ou um sinônimo) aparece nos sintomas listados ou, sem negação, na descrição."""
+    entrada = _vocabulario_motor().get((tipo, termo))
+    if entrada is None:  # termo fora do vocabulário (o validador não deixa chegar aqui)
+        entrada = {"padrao": _padrao([termo.replace("_", " ")]), "exclusoes": None}
+
+    def limpar(texto: str) -> str:
+        return entrada["exclusoes"].sub(" ", texto) if entrada["exclusoes"] else texto
+
+    if any(entrada["padrao"].search(limpar(item)) for item in sintomas):
+        return True
+    texto = limpar(descricao)
+    return any(not NEGACAO.search(texto[max(0, m.start() - 30):m.start()]) for m in entrada["padrao"].finditer(texto))
+
+
+def _intensidade(sintoma: SintomaEstruturado, descricao: str) -> str | None:
+    """A intensidade do Diário vence; sem ela, procura pistas de fala (forte antes de moderada)."""
+    if sintoma.intensidade is not None:
+        return sintoma.intensidade
+    for nivel in ("forte", "moderada", "leve"):
+        entrada = _vocabulario_motor().get(("intensidade", nivel))
+        if entrada is None:
+            continue
+        texto = entrada["exclusoes"].sub(" ", descricao) if entrada["exclusoes"] else descricao
+        if entrada["padrao"].search(texto):
+            return nivel
+    return None
+
+
+def _termo_casa(tipo: str, valor: str, ctx: dict) -> bool:
     if tipo == "s":
-        return re.search(rf"(?<![a-z]){re.escape(valor.replace('_', ' '))}", texto) is not None
+        return _aparece("sintoma", valor, ctx["descricao"], ctx["sintomas"])
     if tipo == "sinal":
-        return sintoma.sinais.get(valor) is True
-    if sintoma.intensidade is None:
+        return ctx["sinais"].get(valor) is True or _aparece("sinal", valor, ctx["descricao"], [])
+    if ctx["intensidade"] is None:
         return False
-    return INTENSIDADES[sintoma.intensidade] >= INTENSIDADES[valor]
+    return INTENSIDADES[ctx["intensidade"]] >= INTENSIDADES[valor]
 
 
 @lru_cache(maxsize=1)
@@ -103,12 +166,15 @@ def _regras() -> list[dict]:
 
 def avaliar_gravidade(sintoma: SintomaEstruturado) -> Conduta:
     chaves = " ".join(k.replace("_", " ") for k, v in sintoma.sinais.items() if v is True)
-    texto = normalizar_texto(" ".join([sintoma.descricao, *sintoma.sintomas, chaves]))
-    alarme = detectar_alarme(texto)
+    itens = [normalizar_texto(x) for x in sintoma.sintomas]
+    alarme = detectar_alarme(" ".join([sintoma.descricao, *sintoma.sintomas, chaves]))
     if alarme:
         return alarme
+    descricao = normalizar_texto(f"{sintoma.descricao} {chaves}")
+    ctx = {"descricao": descricao, "sintomas": itens, "sinais": sintoma.sinais,
+           "intensidade": _intensidade(sintoma, descricao)}
     for regra in _regras():
-        if any(all(_termo_casa(t, v, texto, sintoma) for t, v in alt) for alt in regra["alternativas"]):
+        if any(all(_termo_casa(t, v, ctx) for t, v in alt) for alt in regra["alternativas"]):
             return Conduta(nivel=regra["nivel"], regra_id=regra["regra_id"],
                            motivo=regra["motivo"], fonte=regra["fonte"])
     return PADRAO_OBSERVAR

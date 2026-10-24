@@ -76,6 +76,19 @@ def _apresentacao(texto: str) -> tuple[str, str] | None:
     return " + ".join(numeros) + " " + unidade, forma
 
 
+# Tipo de receita derivado da CMED: tarja preta = controle especial; classe J1 (antibacterianos) = antimicrobiano.
+# Entre as apresentações de um mesmo princípio vale a mais restritiva (algumas linhas vêm sem tarja).
+RESTRICAO = {"simples": 0, "antimicrobiano": 1, "controle_especial": 2}
+
+
+def _tipo_receita(tarja: str, classe: str) -> str:
+    if "preta" in normalizar_texto(tarja):
+        return "controle_especial"
+    if normalizar_texto(classe).startswith("j1 "):
+        return "antimicrobiano"
+    return "simples"
+
+
 def _componentes(substancia: str) -> list[str | None]:
     """Cada componente da SUBSTÂNCIA vira um princípio da lista, ou None se for de fora."""
     saida = []
@@ -120,9 +133,11 @@ def extrair(caminho: Path):
     cabecalho = next(l for l in linhas if l and str(l[0] or "").strip().upper().startswith("SUBST"))
     col = {str(nome).strip().upper(): i for i, nome in enumerate(cabecalho) if nome}
     i_sub, i_reg, i_prod, i_apr = col["SUBSTÂNCIA"], col["REGISTRO"], col["PRODUTO"], col["APRESENTAÇÃO"]
+    i_tarja, i_classe = col["TARJA"], col["CLASSE TERAPÊUTICA"]
 
     remedios: dict[tuple, dict] = {}
     substancias: dict[str, str] = {}  # texto normalizado da SUBSTÂNCIA -> princípio (só isoladas)
+    tipos: dict[str, str] = {}  # princípio -> tipo de receita mais restritivo
     for linha in linhas:
         if not linha or not linha[i_sub]:
             continue
@@ -134,20 +149,23 @@ def extrair(caminho: Path):
             continue
         concentracao, forma = apresentacao
         principio = ";".join(principios)
+        tipo = _tipo_receita(str(linha[i_tarja] or ""), str(linha[i_classe] or ""))
+        if RESTRICAO[tipo] >= RESTRICAO[tipos.get(principio, "simples")]:
+            tipos[principio] = tipo
         if len(principios) == 1:
             substancias[normalizar_texto(str(linha[i_sub]))] = principio
         chave = (principio, normalizar_texto(str(linha[i_prod])), concentracao, forma)
         remedios.setdefault(chave, {"registro_anvisa": str(linha[i_reg] or "").strip()})
-    return remedios, substancias
+    return remedios, substancias, tipos
 
 
-def gravar(remedios, substancias, fonte: str) -> None:
+def gravar(remedios, substancias, tipos, fonte: str) -> None:
     TABELAS.mkdir(exist_ok=True)
     with open(TABELAS / "remedios.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
-        w.writerow(["principio_ativo", "nome_comercial", "concentracao", "forma", "registro_anvisa", "fonte"])
+        w.writerow(["principio_ativo", "nome_comercial", "concentracao", "forma", "registro_anvisa", "tipo_receita", "fonte"])
         for (principio, nome, conc, forma), extra in sorted(remedios.items()):
-            w.writerow([principio, nome, conc, forma, extra["registro_anvisa"], fonte])
+            w.writerow([principio, nome, conc, forma, extra["registro_anvisa"], tipos.get(principio, "simples"), fonte])
 
     sinonimos = dict(SINONIMOS_FIXOS)
     for texto, principio in substancias.items():  # nomes de sal: "cloridrato de metformina" -> metformina
@@ -163,8 +181,8 @@ def gravar(remedios, substancias, fonte: str) -> None:
 def main() -> None:
     caminho = Path(sys.argv[1]) if len(sys.argv) > 1 else _arquivo_mais_recente()
     fonte = f"CMED {_data_do_arquivo(caminho)}"
-    remedios, substancias = extrair(caminho)
-    gravar(remedios, substancias, fonte)
+    remedios, substancias, tipos = extrair(caminho)
+    gravar(remedios, substancias, tipos, fonte)
     cobertos = {p for (p, *_ ) in remedios if ";" not in p}
     faltando = sorted(set(PRINCIPIOS) - cobertos)
     print(f"{len(remedios)} apresentações; princípios cobertos: {len(cobertos)}/{len(PRINCIPIOS)}")
