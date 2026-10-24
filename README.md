@@ -8,6 +8,15 @@ A Seriema é uma plataforma em que a **cuidadora familiar** de um idoso que toma
 
 A Seri **organiza e encaminha; não decide**. Nunca sugere dose, troca ou suspensão.
 
+> **O projeto está em dois repositórios.**
+>
+> | Repositório | O que tem |
+> |---|---|
+> | **[`akcit_campers`](https://github.com/sargondzn/akcit_campers)** (este) | API, harness agêntico, ferramentas de dados, avaliação e specs |
+> | **[`akcit-campers-front`](https://github.com/BiaTrixie/akcit-campers-front)** | Interface da cuidadora (PWA em React + Vite) |
+>
+> A interface foi separada em 23/10/2026 ([`divisao.md`](specs/00-projeto/divisao.md) §4) e conversa com a API deste repositório pela variável `VITE_API_URL` (padrão `http://127.0.0.1:8000`). Para rodar o sistema inteiro, clone os dois lado a lado (veja [Como rodar](#como-rodar-git-bash-windows)).
+
 ---
 
 ## O que a Seri faz
@@ -138,7 +147,11 @@ HARNESS_STUB=1 ./.venv/Scripts/python.exe -m uvicorn app.main:app --reload --hos
 
 ### 3. Subir a interface (terminal 2)
 
+A interface está no repositório [`akcit-campers-front`](https://github.com/BiaTrixie/akcit-campers-front). Clone ao lado deste (`/c/dev/akcit-campers-front`):
+
 ```bash
+cd /c/dev
+git clone https://github.com/BiaTrixie/akcit-campers-front.git   # só na primeira vez
 cd /c/dev/akcit-campers-front
 npm install      # só na primeira vez
 npm run dev
