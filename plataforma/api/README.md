@@ -29,6 +29,8 @@ Os arquivos e o banco ficam em `dados/` e não entram no Git.
 | POST | `/api/mensagens` | Texto, foto, PDF ou áudio |
 | POST | `/api/acoes` | `confirmar_lista` |
 | GET | `/api/lista` | Versão mais recente |
+| PUT | `/api/lista/itens` | Ajusta os remédios (nome, concentração, horário opcional, foto opcional) |
+| POST | `/api/arquivos` | Sobe foto da caixa ou do blister para um item da lista |
 | POST | `/api/doses` | Registra que o horário do lembrete foi visto |
 | GET | `/api/resumo.pdf` | PDF só com a sessão da cuidadora |
 | GET | `/api/arquivos/{id}` | Foto, PDF ou áudio da própria conta |

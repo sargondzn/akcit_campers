@@ -90,7 +90,9 @@ def iniciar_banco() -> None:
                 id INTEGER PRIMARY KEY,
                 lista_id INTEGER NOT NULL REFERENCES listas(id),
                 nome TEXT NOT NULL,
-                concentracao TEXT NOT NULL
+                concentracao TEXT NOT NULL,
+                horario TEXT,
+                arquivo_id INTEGER REFERENCES arquivos(id)
             );
             CREATE TABLE IF NOT EXISTS alertas (
                 id INTEGER PRIMARY KEY,
@@ -113,6 +115,15 @@ def iniciar_banco() -> None:
             );
             """
         )
+        _migrar_itens(conn)
+
+
+def _migrar_itens(conn: sqlite3.Connection) -> None:
+    colunas = {linha[1] for linha in conn.execute("PRAGMA table_info(itens)")}
+    if "horario" not in colunas:
+        conn.execute("ALTER TABLE itens ADD COLUMN horario TEXT")
+    if "arquivo_id" not in colunas:
+        conn.execute("ALTER TABLE itens ADD COLUMN arquivo_id INTEGER REFERENCES arquivos(id)")
 
 
 def gerar_hash(senha: str) -> str:
@@ -342,7 +353,7 @@ def lista_atual(conta_id: int) -> dict | None:
         if lista is None:
             return None
         itens = conn.execute(
-            "SELECT nome, concentracao FROM itens WHERE lista_id = ? ORDER BY id",
+            "SELECT nome, concentracao, horario, arquivo_id FROM itens WHERE lista_id = ? ORDER BY id",
             (lista["id"],),
         ).fetchall()
         alertas = conn.execute(
@@ -352,9 +363,88 @@ def lista_atual(conta_id: int) -> dict | None:
         return {
             "versao": lista["versao"],
             "confirmada": bool(lista["confirmada"]),
-            "itens": [{"nome": i["nome"], "concentracao": i["concentracao"]} for i in itens],
+            "itens": [
+                {
+                    "nome": i["nome"],
+                    "concentracao": i["concentracao"],
+                    "horario": i["horario"],
+                    "arquivo_id": i["arquivo_id"],
+                }
+                for i in itens
+            ],
             "alertas": [{"texto": a["texto"], "fonte": a["fonte"]} for a in alertas],
         }
+
+
+def _proxima_versao_lista(conn, conta_id: int) -> int:
+    versao_row = conn.execute(
+        "SELECT COALESCE(MAX(versao), 0) AS versao FROM listas WHERE conta_id = ?",
+        (conta_id,),
+    ).fetchone()
+    return int(versao_row["versao"]) + 1
+
+
+def _gravar_itens(conn, lista_id: int, itens: list[dict]) -> None:
+    conn.execute("DELETE FROM itens WHERE lista_id = ?", (lista_id,))
+    for item in itens:
+        conn.execute(
+            """
+            INSERT INTO itens (lista_id, nome, concentracao, horario, arquivo_id)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                lista_id,
+                item["nome"],
+                item["concentracao"],
+                item.get("horario"),
+                item.get("arquivo_id"),
+            ),
+        )
+
+
+_ALERTA_LISTA_MANUAL = (
+    "Lista montada ou ajustada na mão. Confira nome e concentração com a receita, a caixa ou o farmacêutico.",
+    "Entrada manual na plataforma.",
+)
+
+
+def atualizar_itens_lista_pendente(conta_id: int, itens: list[dict[str, str]]) -> dict:
+    with banco() as conn:
+        lista = conn.execute(
+            """
+            SELECT id, confirmada FROM listas
+            WHERE conta_id = ? ORDER BY versao DESC LIMIT 1
+            """,
+            (conta_id,),
+        ).fetchone()
+        if lista is None:
+            versao = _proxima_versao_lista(conn, conta_id)
+            cur = conn.execute(
+                "INSERT INTO listas (conta_id, versao, confirmada, criada_em) VALUES (?, ?, 0, ?)",
+                (conta_id, versao, agora()),
+            )
+            lista_id = int(cur.lastrowid)
+            _gravar_itens(conn, lista_id, itens)
+            conn.execute(
+                "INSERT INTO alertas (lista_id, texto, fonte) VALUES (?, ?, ?)",
+                (lista_id, _ALERTA_LISTA_MANUAL[0], _ALERTA_LISTA_MANUAL[1]),
+            )
+        elif lista["confirmada"]:
+            versao = _proxima_versao_lista(conn, conta_id)
+            cur = conn.execute(
+                "INSERT INTO listas (conta_id, versao, confirmada, criada_em) VALUES (?, ?, 0, ?)",
+                (conta_id, versao, agora()),
+            )
+            lista_id = int(cur.lastrowid)
+            _gravar_itens(conn, lista_id, itens)
+            conn.execute(
+                "INSERT INTO alertas (lista_id, texto, fonte) VALUES (?, ?, ?)",
+                (lista_id, _ALERTA_LISTA_MANUAL[0], _ALERTA_LISTA_MANUAL[1]),
+            )
+        else:
+            lista_id = int(lista["id"])
+            _gravar_itens(conn, lista_id, itens)
+    return lista_atual(conta_id) or {}
 
 
 def confirmar_lista_atual(conta_id: int) -> bool:
