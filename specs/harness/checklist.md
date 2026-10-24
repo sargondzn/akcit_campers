@@ -90,4 +90,6 @@
 - **HA-D10:** quando nenhum remédio da lista tem médico, a opção "Só os remédios desse médico" não marca nenhum ausente (lado seguro), mas a pergunta extra da recomendação ainda não foi feita.
 - **E4:** a pendência `quantidade_por_dose` não foi implementada: a quantidade por dose vem da leitura da receita ("1 cp"). Sem ela, o remédio não gera aviso de estoque.
 - **Faster-whisper 1.2.1 × av 19:** a Escuta passa as amostras do WAV direto ao Whisper, sem o decodificador `av` (incompatível).
+- **HA-D5:** o limite de 3 páginas por PDF escaneado e os 60 s por chamada valem, mas o orçamento total de 240 s por mensagem (`orcamento_mensagem_s`) ainda não corta as etapas restantes.
+- **§6.5, passo 4:** o item que continua ilegível depois das duas tentativas fica `nao_confirmado` (fora do cronograma, como pede a spec), mas ainda não passa para `ilegivel` com o aviso "confirme com o farmacêutico".
 - **Pendente de fora:** plugar na API de A (HA-D7), trocar os stubs pelos dados de C, teste de bancada com receitas reais (HA-D2).

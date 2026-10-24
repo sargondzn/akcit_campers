@@ -123,15 +123,10 @@ def normalizar(nome: str) -> ResultadoNormalizacao:
     if limpo in INDICE:
         achados = [INDICE[limpo]]
     else:
-        # associação: "losartana + hidroclorotiazida"
-        partes = [p.strip() for p in re.split(r"\+| e |/", limpo) if p.strip()]
-        if len(partes) > 1 and all(p in INDICE for p in partes):
-            achados = [INDICE[p] for p in partes]
-        else:
-            for termo, principio in INDICE.items():
-                if re.search(rf"\b{re.escape(termo)}\b", limpo):
-                    achados = [principio]
-                    break
+        # todos os nomes conhecidos no texto; mais de um princípio = associação ("losartana + hidroclorotiazida")
+        for termo, principio in sorted(INDICE.items(), key=lambda t: -len(t[0])):
+            if re.search(rf"\b{re.escape(termo)}\b", limpo) and principio not in achados:
+                achados.append(principio)
     if not achados and limpo:
         notas = sorted(((SequenceMatcher(None, limpo, t).ratio(), p) for t, p in INDICE.items()), reverse=True)
         if notas and notas[0][0] >= 0.85:
