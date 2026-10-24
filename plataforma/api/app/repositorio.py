@@ -22,6 +22,16 @@ def _id() -> str:
     return uuid.uuid4().hex[:10]
 
 
+def linha_item(item: ItemLido) -> dict:
+    """ItemLido → linha de `itens` (o que a interface mostra, mais o ItemLido inteiro em `dados`)."""
+    return {
+        "nome": item.nome_lido,
+        "concentracao": item.concentracao or "",
+        "horario": ", ".join(item.horarios) or None,
+        "dados": item.model_dump(mode="json"),
+    }
+
+
 def _desde(registros: list, campo: str, desde: datetime) -> list:
     return [r for r in registros if getattr(r, campo) >= desde]
 
@@ -120,8 +130,7 @@ class RepositorioApi:
                                 pontos_para_conferir: list[str] | None = None) -> int:
         versao = db.confirmar_lista(
             self.conta_id,
-            [{"nome": i.nome_lido, "concentracao": i.concentracao or "", "dados": i.model_dump(mode="json")}
-             for i in itens],
+            [linha_item(i) for i in itens],
             pontos_para_conferir or [],
             datetime.now().isoformat(),
         )

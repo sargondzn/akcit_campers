@@ -19,9 +19,9 @@ if str(RAIZ_REPO) not in sys.path:
     sys.path.insert(0, str(RAIZ_REPO))
 
 from app import db, stub  # noqa: E402
-from app.repositorio import RepositorioApi  # noqa: E402
-from harness import processar_mensagem  # noqa: E402
-from harness.contratos import Acao, Anexo, MensagemEntrada, MensagemSaida  # noqa: E402
+from app.repositorio import RepositorioApi, linha_item  # noqa: E402
+from harness import dados_ponte, processar_mensagem  # noqa: E402
+from harness.contratos import Acao, Anexo, ItemLido, MensagemEntrada, MensagemSaida  # noqa: E402
 from harness.guardrails import frases  # noqa: E402
 
 log = logging.getLogger("seriema.ponte")
@@ -76,6 +76,68 @@ def acionar_botao(conta_id: int, mensagem_id: int, indice: int) -> dict | None:
     return _rodar(conta_id, _entrada(conta_id, "acao", acao=Acao.model_validate(botao["acao"])))
 
 
+def editar_lista(conta_id: int, itens: list[dict]) -> dict:
+    """Edição na tela (PUT /api/lista/itens): grava a lista sem confirmação e leva os mesmos itens para a
+    pendência `lista_para_confirmar`, para a confirmação no harness salvar o que a cuidadora ajustou."""
+    with TRAVA:
+        anteriores = [ItemLido.model_validate(l["dados"]) for l in db.itens_pendentes(conta_id) or [] if l["dados"]]
+        novos = [_item_editado(i, _original(i, n, itens, anteriores)) for n, i in enumerate(itens)]
+        db.atualizar_itens_lista_pendente(
+            conta_id,
+            [{**linha_item(n), "horario": i.get("horario") or linha_item(n)["horario"], "arquivo_id": i.get("arquivo_id")}
+             for i, n in zip(itens, novos)],
+        )
+        _pendencia_da_lista(conta_id, novos)
+    return db.lista_atual(conta_id) or {}
+
+
+def _original(editado: dict, posicao: int, editados: list[dict], anteriores: list[ItemLido]) -> ItemLido | None:
+    """Item lido que a linha editada corrige: o de mesmo nome; com o nome corrigido, o da mesma posição
+    (se o nome dele não aparece mais na tela)."""
+    chave = dados_ponte.texto_normalizado
+    achado = next((a for a in anteriores if chave(a.nome_lido) == chave(editado["nome"])), None)
+    if achado or posicao >= len(anteriores):
+        return achado
+    na_tela = {chave(e["nome"]) for e in editados}
+    candidato = anteriores[posicao]
+    return None if chave(candidato.nome_lido) in na_tela else candidato
+
+
+def _item_editado(editado: dict, original: ItemLido | None) -> ItemLido:
+    nome, concentracao, horario = editado["nome"], editado["concentracao"], editado.get("horario")
+    if original is None:
+        norm = dados_ponte.normalizar(f"{nome} {concentracao}")
+        return ItemLido(
+            item_id=uuid.uuid4().hex[:10], nome_lido=nome, principio_ativo=norm.principio_ativo,
+            concentracao=concentracao, horarios=[horario] if horario else [], origem="digitado",
+            confianca=1.0, status="proposto",
+        )
+    # o campo de horário da tela guarda um só; vazio com vários horários lidos = não mexeu neles
+    horarios = original.horarios
+    if horario and horario != ", ".join(original.horarios):
+        horarios = [horario]
+    elif not horario and len(original.horarios) <= 1:
+        horarios = []
+    principio_ativo = original.principio_ativo
+    if dados_ponte.texto_normalizado(nome) != dados_ponte.texto_normalizado(original.nome_lido):
+        principio_ativo = dados_ponte.normalizar(f"{nome} {concentracao}").principio_ativo or principio_ativo
+    # a cuidadora conferiu o item na tela: deixa de ser leitura com confiança baixa
+    return original.model_copy(update={"nome_lido": nome, "concentracao": concentracao, "horarios": horarios,
+                                       "principio_ativo": principio_ativo, "status": "proposto",
+                                       "confianca": max(original.confianca, 0.9)})
+
+
+def _pendencia_da_lista(conta_id: int, itens: list[ItemLido]) -> str:
+    repo = RepositorioApi(conta_id)
+    abertas = [p for p in repo.obter_pendencias(str(conta_id)) if p.tipo == "lista_para_confirmar"]
+    dados = {"itens": [i.model_dump(mode="json") for i in itens]}
+    if abertas:
+        pendencia = abertas[-1]
+        repo.atualizar_pendencia(pendencia.pendencia_id, {**pendencia.dados, **dados})
+        return pendencia.pendencia_id
+    return repo.criar_pendencia(str(conta_id), "lista_para_confirmar", {**dados, "mudancas": []})
+
+
 def _entrada(conta_id: int, tipo: str, **campos) -> MensagemEntrada:
     return MensagemEntrada(
         mensagem_id=uuid.uuid4().hex, conta_id=str(conta_id), idoso_id=str(conta_id),
@@ -84,11 +146,16 @@ def _entrada(conta_id: int, tipo: str, **campos) -> MensagemEntrada:
 
 
 def _acao_confirmar(conta_id: int) -> Acao | None:
+    linhas = db.itens_pendentes(conta_id)
+    if not linhas:
+        return None
     repo = RepositorioApi(conta_id)
     abertas = [p for p in repo.obter_pendencias(str(conta_id)) if p.tipo == "lista_para_confirmar"]
-    if not abertas:
-        return None
-    return Acao(tipo="confirmar_pendencia", pendencia_id=abertas[-1].pendencia_id)
+    if abertas:
+        return Acao(tipo="confirmar_pendencia", pendencia_id=abertas[-1].pendencia_id)
+    # lista sem pendência no harness (montada antes da ponte existir): cria a pendência a partir da tela
+    novos = [ItemLido.model_validate(l["dados"]) if l["dados"] else _item_editado(l, None) for l in linhas]
+    return Acao(tipo="confirmar_pendencia", pendencia_id=_pendencia_da_lista(conta_id, novos))
 
 
 def _rodar(conta_id: int, entrada: MensagemEntrada) -> dict:
@@ -116,8 +183,7 @@ def _gravar(conta_id: int, mensagens: list[MensagemSaida]) -> None:
         if m.tipo == "lista_para_confirmar":
             db.propor_lista(
                 conta_id,
-                [{"nome": i.nome_lido, "concentracao": i.concentracao or "", "dados": i.model_dump(mode="json")}
-                 for i in m.itens or []],
+                [linha_item(i) for i in m.itens or []],
                 [{"texto": a["descricao"] or a.get("texto", ""), "fonte": a.get("fonte", "")} for a in alertas],
             )
         acoes, botoes = _acoes(m)

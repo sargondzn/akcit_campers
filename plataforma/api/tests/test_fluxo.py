@@ -31,6 +31,15 @@ def test_fluxo_da_demo():
         assert aceite.status_code == 200
         assert aceite.json()["nome_idoso"] == "Dona Ana"
 
+        manual = client.put(
+            "/api/lista/itens",
+            headers=cabecalho,
+            json={"itens": [{"nome": "Losartana", "concentracao": "30 mg"}]},
+        )
+        assert manual.status_code == 200
+        assert manual.json()["pode_confirmar"] is True
+        assert manual.json()["itens"][0]["nome"] == "Losartana"
+
         foto = client.post(
             "/api/mensagens",
             headers=cabecalho,
@@ -43,6 +52,20 @@ def test_fluxo_da_demo():
         lista = next(m for m in corpo["mensagens"] if m["tipo"] == "lista")
         assert len(lista["itens"]) == 4
         assert lista["alertas"]
+
+        editada = client.put(
+            "/api/lista/itens",
+            headers=cabecalho,
+            json={
+                "itens": [
+                    {"nome": "Losartana potássica", "concentracao": "50 mg"},
+                    {"nome": "Dipirona", "concentracao": "500 mg"},
+                ]
+            },
+        )
+        assert editada.status_code == 200
+        assert len(editada.json()["itens"]) == 2
+        assert editada.json()["itens"][1]["nome"] == "Dipirona"
 
         confirmada = client.post(
             "/api/acoes",

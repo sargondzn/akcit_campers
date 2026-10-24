@@ -24,6 +24,18 @@ def test_aprova_frases_fixas_e_texto_normal():
         assert auditor.verificar(texto, ctx()).aprovado, texto
 
 
+def test_de_um_como_preposicao_nao_bloqueia():
+    for texto in [frases.ESCOPO.format(de_quem="de um médico"), frases.LIMITE, frases.NAO_ENTENDI,
+                  "Mande a foto de uma caixa de cada vez."]:
+        assert auditor.verificar(texto, ctx()).aprovado, texto
+
+
+def test_de_um_antes_de_dose_bloqueia():
+    for texto in ["Dê um comprimido a mais.", "dê uma gota", "Pode de um comprimido a mais hoje.",
+                  "Melhor de meio comprimido."]:
+        assert not auditor.verificar(texto, ctx()).aprovado, texto
+
+
 def test_dose_fora_da_lista():
     assert auditor.verificar("A losartana 50 mg está na lista.", ctx()).aprovado
     assert not auditor.verificar("A losartana 100 mg está na lista.", ctx()).aprovado

@@ -37,11 +37,15 @@ Os arquivos e o banco ficam em `dados/` e não entram no Git.
 | POST | `/api/mensagens` | Texto, foto, PDF ou áudio |
 | POST | `/api/acoes` | `confirmar_lista` |
 | GET | `/api/lista` | Versão mais recente |
+| PUT | `/api/lista/itens` | Ajusta os remédios (nome, concentração, horário opcional, foto opcional) |
+| POST | `/api/arquivos` | Sobe foto da caixa ou do blister para um item da lista |
 | POST | `/api/doses` | Registra que o horário do lembrete foi visto |
 | GET | `/api/resumo.pdf` | PDF só com a sessão da cuidadora |
 | GET | `/api/arquivos/{id}` | Foto, PDF ou áudio da própria conta |
 
 Foto ou PDF passam pelo Leitor e pelo Intérprete do harness e viram uma lista para confirmar (`listas` sem confirmação). "Confirmar lista" resolve a pendência `lista_para_confirmar` no harness, que grava a versão confirmada. Botões do harness com ação (escopo da receita, item ausente, estoque) chegam em `acoes` com id `botao:<mensagem>:<n>` e voltam por `POST /api/acoes`. Texto de alarme cai nas regras fixas do harness e devolve "ligue 192".
+
+`PUT /api/lista/itens` grava a lista sem confirmação e leva os mesmos itens para a pendência do harness, para a confirmação salvar o que a cuidadora ajustou. Cada linha editada corrige o item lido de mesmo nome, ou o da mesma posição quando o nome foi corrigido; os horários lidos ficam se o campo de horário vier vazio. Áudio é transcrito pelo Whisper local e a Seri responde com voz: os dois precisam do ffmpeg (`winget install Gyan.FFmpeg`).
 
 Com `HARNESS_STUB=1`: foto ou PDF devolvem a lista fixa da demonstração, áudio devolve o resumo sem transcrição.
 
@@ -54,13 +58,14 @@ Anotado em 23/10/2026.
 - [ ] Publicar em **HTTPS**, no mesmo endereço em que a interface for publicada. Câmera e microfone no celular de outra pessoa dependem disso.
 - [x] Trocar o stub de `app/stub.py` pela chamada real do harness (24/10/2026, `app/ponte.py`).
 - [ ] Fila com status `processando` e retomada ao reiniciar (spec §6). Hoje a chamada roda numa thread, uma por vez, e a requisição espera a resposta.
-- [ ] Interface: mostrar as ações `botao:...` como botões. Hoje ela só desenha `ligar_192` e `baixar_resumo`.
+- [x] Interface: mostrar as ações `botao:...` como botões (24/10/2026, `Conversa.tsx`).
 - [ ] Lembrete por horário marcado. Hoje ele aparece na hora em que a lista é confirmada.
 - [ ] Confirmar o reenvio de arquivo quando a rede cai. A interface já guarda a foto para tentar de novo; a API em si não tem fila.
 
 ### De outras frentes
 
-- [ ] Leitura da foto e do PDF, transcrição, voz do lembrete e Auditor (harness).
+- [x] Leitura da foto e do PDF, transcrição, voz e Auditor (harness), ligados pela `app/ponte.py`.
+- [ ] Voz do lembrete agendado (depende do lembrete por horário).
 - [ ] Normalização, interações e gravidade com fonte real (dados).
 - [ ] Avaliação e conjuntos de teste.
 

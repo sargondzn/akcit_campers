@@ -90,7 +90,9 @@ def iniciar_banco() -> None:
                 id INTEGER PRIMARY KEY,
                 lista_id INTEGER NOT NULL REFERENCES listas(id),
                 nome TEXT NOT NULL,
-                concentracao TEXT NOT NULL
+                concentracao TEXT NOT NULL,
+                horario TEXT,
+                arquivo_id INTEGER REFERENCES arquivos(id)
             );
             CREATE TABLE IF NOT EXISTS alertas (
                 id INTEGER PRIMARY KEY,
@@ -120,9 +122,18 @@ def iniciar_banco() -> None:
             );
             """
         )
+        _migrar_itens(conn)
         _garantir_coluna(conn, "listas", "confirmada_em", "TEXT")
         _garantir_coluna(conn, "listas", "pontos_json", "TEXT NOT NULL DEFAULT '[]'")
         _garantir_coluna(conn, "itens", "dados_json", "TEXT NOT NULL DEFAULT '{}'")
+
+
+def _migrar_itens(conn: sqlite3.Connection) -> None:
+    colunas = {linha[1] for linha in conn.execute("PRAGMA table_info(itens)")}
+    if "horario" not in colunas:
+        conn.execute("ALTER TABLE itens ADD COLUMN horario TEXT")
+    if "arquivo_id" not in colunas:
+        conn.execute("ALTER TABLE itens ADD COLUMN arquivo_id INTEGER REFERENCES arquivos(id)")
 
 
 def _garantir_coluna(conn, tabela: str, coluna: str, tipo: str) -> None:
@@ -370,9 +381,11 @@ def lista_atual(conta_id: int) -> dict | None:
         if lista is None:
             return None
         itens = conn.execute(
-            "SELECT nome, concentracao FROM itens WHERE lista_id = ? ORDER BY id",
+            "SELECT nome, concentracao, horario, arquivo_id, dados_json FROM itens WHERE lista_id = ? ORDER BY id",
             (lista["id"],),
         ).fetchall()
+        # item que o médico tirou fica guardado para o harness, mas sai da lista da cuidadora
+        itens = [i for i in itens if json.loads(i["dados_json"] or "{}").get("status") != "retirado"]
         alertas = conn.execute(
             "SELECT texto, fonte FROM alertas WHERE lista_id = ? ORDER BY id",
             (lista["id"],),
@@ -380,9 +393,115 @@ def lista_atual(conta_id: int) -> dict | None:
         return {
             "versao": lista["versao"],
             "confirmada": bool(lista["confirmada"]),
-            "itens": [{"nome": i["nome"], "concentracao": i["concentracao"]} for i in itens],
+            "itens": [
+                {
+                    "nome": i["nome"],
+                    "concentracao": i["concentracao"],
+                    "horario": i["horario"],
+                    "arquivo_id": i["arquivo_id"],
+                }
+                for i in itens
+            ],
             "alertas": [{"texto": a["texto"], "fonte": a["fonte"]} for a in alertas],
         }
+
+
+def _proxima_versao_lista(conn, conta_id: int) -> int:
+    versao_row = conn.execute(
+        "SELECT COALESCE(MAX(versao), 0) AS versao FROM listas WHERE conta_id = ?",
+        (conta_id,),
+    ).fetchone()
+    return int(versao_row["versao"]) + 1
+
+
+def _gravar_itens(conn, lista_id: int, itens: list[dict]) -> None:
+    """`dados`, quando vem, é o ItemLido do harness (JSON), usado pelo Repositorio (C6)."""
+    conn.execute("DELETE FROM itens WHERE lista_id = ?", (lista_id,))
+    for item in itens:
+        conn.execute(
+            """
+            INSERT INTO itens (lista_id, nome, concentracao, horario, arquivo_id, dados_json)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                lista_id,
+                item["nome"],
+                item["concentracao"],
+                item.get("horario"),
+                item.get("arquivo_id"),
+                json.dumps(item.get("dados", {}), ensure_ascii=False),
+            ),
+        )
+
+
+def itens_pendentes(conta_id: int) -> list[dict] | None:
+    """Itens da última lista, se ela ainda não foi confirmada, com o ItemLido guardado em `dados`."""
+    with banco() as conn:
+        lista = conn.execute(
+            "SELECT id, confirmada FROM listas WHERE conta_id = ? ORDER BY versao DESC LIMIT 1",
+            (conta_id,),
+        ).fetchone()
+        if lista is None or lista["confirmada"]:
+            return None
+        rows = conn.execute(
+            "SELECT nome, concentracao, horario, arquivo_id, dados_json FROM itens WHERE lista_id = ? ORDER BY id",
+            (lista["id"],),
+        ).fetchall()
+        return [
+            {
+                "nome": r["nome"],
+                "concentracao": r["concentracao"],
+                "horario": r["horario"],
+                "arquivo_id": r["arquivo_id"],
+                "dados": json.loads(r["dados_json"] or "{}"),
+            }
+            for r in rows
+        ]
+
+
+_ALERTA_LISTA_MANUAL = (
+    "Lista montada ou ajustada na mão. Confira nome e concentração com a receita, a caixa ou o farmacêutico.",
+    "Entrada manual na plataforma.",
+)
+
+
+def atualizar_itens_lista_pendente(conta_id: int, itens: list[dict[str, str]]) -> dict:
+    with banco() as conn:
+        lista = conn.execute(
+            """
+            SELECT id, confirmada FROM listas
+            WHERE conta_id = ? ORDER BY versao DESC LIMIT 1
+            """,
+            (conta_id,),
+        ).fetchone()
+        if lista is None:
+            versao = _proxima_versao_lista(conn, conta_id)
+            cur = conn.execute(
+                "INSERT INTO listas (conta_id, versao, confirmada, criada_em) VALUES (?, ?, 0, ?)",
+                (conta_id, versao, agora()),
+            )
+            lista_id = int(cur.lastrowid)
+            _gravar_itens(conn, lista_id, itens)
+            conn.execute(
+                "INSERT INTO alertas (lista_id, texto, fonte) VALUES (?, ?, ?)",
+                (lista_id, _ALERTA_LISTA_MANUAL[0], _ALERTA_LISTA_MANUAL[1]),
+            )
+        elif lista["confirmada"]:
+            versao = _proxima_versao_lista(conn, conta_id)
+            cur = conn.execute(
+                "INSERT INTO listas (conta_id, versao, confirmada, criada_em) VALUES (?, ?, 0, ?)",
+                (conta_id, versao, agora()),
+            )
+            lista_id = int(cur.lastrowid)
+            _gravar_itens(conn, lista_id, itens)
+            conn.execute(
+                "INSERT INTO alertas (lista_id, texto, fonte) VALUES (?, ?, ?)",
+                (lista_id, _ALERTA_LISTA_MANUAL[0], _ALERTA_LISTA_MANUAL[1]),
+            )
+        else:
+            lista_id = int(lista["id"])
+            _gravar_itens(conn, lista_id, itens)
+    return lista_atual(conta_id) or {}
 
 
 def confirmar_lista_atual(conta_id: int) -> bool:
@@ -401,13 +520,9 @@ def confirmar_lista_atual(conta_id: int) -> bool:
 
 
 def propor_lista(conta_id: int, itens: list[dict], alertas: list[dict]) -> int:
-    """Lista ainda sem confirmação, vinda do harness. `itens`: nome, concentracao e dados (ItemLido)."""
+    """Lista ainda sem confirmação, vinda do harness. `itens`: nome, concentracao, horario e dados (ItemLido)."""
     with banco() as conn:
-        versao_row = conn.execute(
-            "SELECT COALESCE(MAX(versao), 0) AS versao FROM listas WHERE conta_id = ?",
-            (conta_id,),
-        ).fetchone()
-        versao = int(versao_row["versao"]) + 1
+        versao = _proxima_versao_lista(conn, conta_id)
         cur = conn.execute(
             "INSERT INTO listas (conta_id, versao, confirmada, criada_em) VALUES (?, ?, 0, ?)",
             (conta_id, versao, agora()),
@@ -423,41 +538,37 @@ def propor_lista(conta_id: int, itens: list[dict], alertas: list[dict]) -> int:
 
 
 def confirmar_lista(conta_id: int, itens: list[dict], pontos: list[str], confirmada_em: str) -> int:
-    """Grava a lista confirmada. Reaproveita a última proposta aberta, se houver, e mantém os alertas dela."""
+    """Grava a lista confirmada. Reaproveita a última proposta aberta, se houver, e mantém os alertas dela
+    e a foto de cada item (pelo `item_id` do harness)."""
     with banco() as conn:
         lista = conn.execute(
             "SELECT id, versao, confirmada FROM listas WHERE conta_id = ? ORDER BY versao DESC LIMIT 1",
             (conta_id,),
         ).fetchone()
+        fotos: dict[str, int] = {}
         if lista is not None and not lista["confirmada"]:
             lista_id, versao = int(lista["id"]), int(lista["versao"])
-            conn.execute("DELETE FROM itens WHERE lista_id = ?", (lista_id,))
+            for row in conn.execute("SELECT arquivo_id, dados_json FROM itens WHERE lista_id = ?", (lista_id,)):
+                item_id = json.loads(row["dados_json"] or "{}").get("item_id")
+                if item_id and row["arquivo_id"]:
+                    fotos[item_id] = row["arquivo_id"]
         else:
-            versao = (int(lista["versao"]) if lista else 0) + 1
+            versao = _proxima_versao_lista(conn, conta_id)
             cur = conn.execute(
                 "INSERT INTO listas (conta_id, versao, confirmada, criada_em) VALUES (?, ?, 0, ?)",
                 (conta_id, versao, agora()),
             )
             lista_id = int(cur.lastrowid)
-        _gravar_itens(conn, lista_id, itens)
+        _gravar_itens(
+            conn,
+            lista_id,
+            [{**i, "arquivo_id": i.get("arquivo_id") or fotos.get(i.get("dados", {}).get("item_id"))} for i in itens],
+        )
         conn.execute(
             "UPDATE listas SET confirmada = 1, confirmada_em = ?, pontos_json = ? WHERE id = ?",
             (confirmada_em, json.dumps(pontos, ensure_ascii=False), lista_id),
         )
         return versao
-
-
-def _gravar_itens(conn, lista_id: int, itens: list[dict]) -> None:
-    for item in itens:
-        conn.execute(
-            "INSERT INTO itens (lista_id, nome, concentracao, dados_json) VALUES (?, ?, ?, ?)",
-            (
-                lista_id,
-                item["nome"],
-                item["concentracao"],
-                json.dumps(item.get("dados", {}), ensure_ascii=False),
-            ),
-        )
 
 
 def listas_confirmadas(conta_id: int) -> list[dict]:

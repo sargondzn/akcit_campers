@@ -19,8 +19,8 @@ def receita(*itens, prescritor="Dr. Silva"):
                               data_receita="2026-10-20", itens=list(itens))
 
 
-def entrar(client) -> dict:
-    token = client.post("/api/entrar", json={"email": "harness@seriema.local", "senha": "seriema"}).json()["token"]
+def entrar(client, email="harness@seriema.local") -> dict:
+    token = client.post("/api/entrar", json={"email": email, "senha": "seriema"}).json()["token"]
     cabecalho = {"Authorization": f"Bearer {token}"}
     client.post("/api/consentimento", headers=cabecalho, json={"nome_idoso": "Dona Ana"})
     return cabecalho
@@ -63,6 +63,46 @@ def test_foto_vira_lista_e_confirmacao_passa_pelo_harness(monkeypatch):
         corpo = client.post("/api/acoes", headers=cabecalho, json={"id": toda["id"]}).json()
         assert corpo["pode_confirmar"] is True
         assert any(m["tipo"] == "lista" for m in corpo["mensagens"])
+
+
+def test_edicao_na_tela_vale_na_confirmacao(monkeypatch):
+    monkeypatch.delenv("HARNESS_STUB", raising=False)
+    monkeypatch.setattr(ponte, "AGENTES", AgentesFalsos(interpretacoes=[
+        receita(item("Losartana", "50 mg"), item("Metfromina", "850 mg", horarios=("07:00",), confianca=0.4)),
+    ]))
+    with TestClient(app) as client:
+        cabecalho = entrar(client, "edicao@seriema.local")
+        foto(client, cabecalho)
+        foto_caixa = client.post("/api/arquivos", headers=cabecalho,
+                                 files={"arquivo": ("caixa.jpg", b"\xff\xd8\xff caixa", "image/jpeg")}).json()["id"]
+
+        editada = client.put("/api/lista/itens", headers=cabecalho, json={"itens": [
+            {"nome": "Losartana", "concentracao": "100 mg", "horario": None, "arquivo_id": foto_caixa},
+            {"nome": "Metformina", "concentracao": "850 mg", "horario": "07:30"},   # nome corrigido na tela
+            {"nome": "Sinvastatina", "concentracao": "20 mg", "horario": None},     # item novo
+        ]})
+        assert editada.status_code == 200
+        assert editada.json()["pode_confirmar"] is True
+
+        confirmada = client.post("/api/acoes", headers=cabecalho, json={"id": "confirmar_lista"}).json()
+        assert confirmada["pode_confirmar"] is False
+        atual = client.get("/api/lista", headers=cabecalho).json()
+        assert atual["confirmada"] is True
+        assert [(i["nome"], i["concentracao"], i["horario"]) for i in atual["itens"]] == [
+            ("Losartana", "100 mg", "08:00, 20:00"),   # horários lidos da receita ficam
+            ("Metformina", "850 mg", "07:30"),
+            ("Sinvastatina", "20 mg", None),
+        ]
+        assert atual["itens"][0]["arquivo_id"] == foto_caixa
+        confirmados = ponte.RepositorioApi(int(atual_conta(client, cabecalho))).obter_lista_atual("")
+        metformina = next(i for i in confirmados.itens if i.nome_lido == "Metformina")
+        assert metformina.status == "confirmado" and metformina.origem == "receita_foto"   # é o item lido, corrigido
+
+
+def atual_conta(client, cabecalho) -> int:
+    from app import db
+
+    return db.conta_do_token(cabecalho["Authorization"].split(" ", 1)[1])
 
 
 def test_texto_de_alarme_passa_pelas_regras_fixas(monkeypatch):

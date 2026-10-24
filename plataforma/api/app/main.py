@@ -45,6 +45,17 @@ class DoseIn(BaseModel):
     lembrete_id: int = Field(gt=0)
 
 
+class ItemListaIn(BaseModel):
+    nome: str
+    concentracao: str
+    horario: str | None = None
+    arquivo_id: int | None = None
+
+
+class ItensListaIn(BaseModel):
+    itens: list[ItemListaIn]
+
+
 @asynccontextmanager
 async def vida(_: FastAPI):
     db.iniciar_banco()
@@ -193,9 +204,7 @@ def acoes(corpo: AcaoIn, conta_id: int = Depends(exigir_uso)) -> dict:
     raise ErroApi(400, "Ação desconhecida.")
 
 
-@app.get("/api/lista")
-def lista(conta_id: int = Depends(exigir_uso)) -> dict:
-    atual = db.lista_atual(conta_id)
+def resposta_lista(conta_id: int, atual: dict | None) -> dict:
     if atual is None:
         return {
             "versao": None,
@@ -212,6 +221,68 @@ def lista(conta_id: int = Depends(exigir_uso)) -> dict:
         "ultima_dose": db.ultima_dose(conta_id),
         "lembrete": db.lembrete_aberto(conta_id),
     }
+
+
+@app.get("/api/lista")
+def lista(conta_id: int = Depends(exigir_uso)) -> dict:
+    return resposta_lista(conta_id, db.lista_atual(conta_id))
+
+
+def _normalizar_horario(valor: str | None) -> str | None:
+    if not valor or not valor.strip():
+        return None
+    limpo = valor.strip()
+    if len(limpo) > 20:
+        raise ErroApi(400, "Horário longo demais.")
+    return limpo
+
+
+@app.put("/api/lista/itens")
+def atualizar_itens(corpo: ItensListaIn, conta_id: int = Depends(exigir_uso)) -> dict:
+    itens: list[dict] = []
+    for item in corpo.itens:
+        nome = item.nome.strip()
+        concentracao = item.concentracao.strip()
+        if not nome or not concentracao:
+            raise ErroApi(400, "Cada remédio precisa de nome e concentração.")
+        if len(nome) > 200 or len(concentracao) > 80:
+            raise ErroApi(400, "Nome ou concentração longos demais.")
+        arquivo_id = item.arquivo_id
+        if arquivo_id is not None and db.ler_arquivo(conta_id, arquivo_id) is None:
+            raise ErroApi(400, "Não encontrei a foto desse remédio.")
+        itens.append(
+            {
+                "nome": nome,
+                "concentracao": concentracao,
+                "horario": _normalizar_horario(item.horario),
+                "arquivo_id": arquivo_id,
+            }
+        )
+    atual = motor()
+    if atual is stub:
+        atualizado = db.atualizar_itens_lista_pendente(conta_id, itens)
+    else:
+        atualizado = atual.editar_lista(conta_id, itens)
+    return resposta_lista(conta_id, atualizado)
+
+
+@app.post("/api/arquivos")
+async def enviar_arquivo(
+    conta_id: int = Depends(exigir_uso),
+    arquivo: UploadFile = File(...),
+) -> dict:
+    if not arquivo.filename:
+        raise ErroApi(400, "Escolha uma foto.")
+    conteudo = await arquivo.read()
+    if not conteudo:
+        raise ErroApi(400, "A foto chegou vazia.")
+    if len(conteudo) > MAX_ARQUIVO:
+        raise ErroApi(413, "A foto passa de 8 MB. Tire outra, mais de perto.")
+    tipo = classificar(arquivo.content_type or "", arquivo.filename)
+    if tipo != "foto":
+        raise ErroApi(400, "Envie uma foto (JPEG, PNG ou WebP).")
+    arquivo_id = db.salvar_arquivo(conta_id, tipo, arquivo.filename, conteudo)
+    return {"id": arquivo_id}
 
 
 @app.post("/api/lembretes/{lembrete_id}/visto")

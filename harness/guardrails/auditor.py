@@ -12,7 +12,9 @@ from harness.guardrails import frases
 FRASES_PROIBIDAS = re.compile(
     r"\b("
     r"tome|tomem|tomar mais|tomar menos|pode tomar|pode dar (o|a|os|as|mais|menos|metade|dois|duas|um|uma|\d)"
-    r"|d[eê] mais|d[eê] metade|d[eê] (dois|duas|um|uma) "
+    r"|d[eê] mais|d[eê] metade|dê (dois|duas|um|uma|meio|meia) "
+    # "de um" sem acento é preposição ("de um médico", "de uma consulta"): só conta antes de unidade de dose
+    r"|de (dois|duas|um|uma|meio|meia) (comprimidos?|cps?|c[aá]psulas?|gotas?|doses?|colher(es)?|ampolas?)"
     r"|aument[ae]|aumentar a dose|diminu[ai]|reduz(a|ir) a dose|dobr[ae]|suspend[ae]|suspender|pare de (tomar|dar|usar)"
     r"|parar de (tomar|dar|usar)|interromp[ae]|troqu?e|trocar (por|pelo|pela)|substitua|substituir (por|pelo|pela)|pode tirar (o|a|os|as|esse|essa)|tire (o|a|esse|essa)"
     r"|deixe de (tomar|dar)|pule (a|o) dose"
