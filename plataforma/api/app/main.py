@@ -1,6 +1,8 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, File, Form, Header, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
@@ -9,6 +11,15 @@ from app import db, stub
 from app.pdf import gerar_pdf
 
 MAX_ARQUIVO = 8 * 1024 * 1024
+
+
+def motor():
+    """HARNESS_STUB=1: respostas fixas do stub (spec §6). Sem ela, a conversa passa pelo harness."""
+    if os.environ.get("HARNESS_STUB") == "1":
+        return stub
+    from app import ponte
+
+    return ponte
 
 
 class ErroApi(Exception):
@@ -165,14 +176,21 @@ async def mensagens(
         guardado = {"id": arquivo_id, "tipo": tipo}
     if not texto.strip() and guardado is None:
         raise ErroApi(400, "Escreva uma mensagem ou envie uma foto, um PDF ou um áudio.")
-    return stub.tratar(conta_id, texto, guardado)
+    return await run_in_threadpool(motor().tratar, conta_id, texto, guardado)
 
 
 @app.post("/api/acoes")
 def acoes(corpo: AcaoIn, conta_id: int = Depends(exigir_uso)) -> dict:
-    if corpo.id != "confirmar_lista":
-        raise ErroApi(400, "Ação desconhecida.")
-    return stub.confirmar(conta_id)
+    atual = motor()
+    if corpo.id == "confirmar_lista":
+        return atual.confirmar(conta_id)
+    partes = corpo.id.split(":")
+    if atual is not stub and len(partes) == 3 and partes[0] == "botao" and partes[1].isdigit() \
+            and partes[2].isdigit():
+        estado = atual.acionar_botao(conta_id, int(partes[1]), int(partes[2]))
+        if estado is not None:
+            return estado
+    raise ErroApi(400, "Ação desconhecida.")
 
 
 @app.get("/api/lista")

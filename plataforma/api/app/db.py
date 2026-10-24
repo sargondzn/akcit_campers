@@ -111,8 +111,24 @@ def iniciar_banco() -> None:
                 lembrete_id INTEGER NOT NULL,
                 registrado_em TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS harness_registros (
+                id TEXT PRIMARY KEY,
+                conta_id INTEGER NOT NULL REFERENCES contas(id),
+                colecao TEXT NOT NULL,
+                dados_json TEXT NOT NULL DEFAULT '{}',
+                criado_em TEXT NOT NULL
+            );
             """
         )
+        _garantir_coluna(conn, "listas", "confirmada_em", "TEXT")
+        _garantir_coluna(conn, "listas", "pontos_json", "TEXT NOT NULL DEFAULT '[]'")
+        _garantir_coluna(conn, "itens", "dados_json", "TEXT NOT NULL DEFAULT '{}'")
+
+
+def _garantir_coluna(conn, tabela: str, coluna: str, tipo: str) -> None:
+    colunas = {row["name"] for row in conn.execute(f"PRAGMA table_info({tabela})")}
+    if coluna not in colunas:
+        conn.execute(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {tipo}")
 
 
 def gerar_hash(senha: str) -> str:
@@ -224,10 +240,22 @@ def salvar_arquivo(conta_id: int, tipo: str, nome: str, conteudo: bytes) -> int:
             (conta_id, tipo, nome, "", agora()),
         )
         arquivo_id = int(cur.lastrowid)
-        destino = pasta_dados() / "arquivos" / f"{arquivo_id}.bin"
+        sufixo = Path(nome).suffix.lower()
+        if not sufixo.isascii() or len(sufixo) > 6:
+            sufixo = ""
+        destino = pasta_dados() / "arquivos" / f"{arquivo_id}{sufixo or '.bin'}"
         destino.write_bytes(conteudo)
         conn.execute("UPDATE arquivos SET caminho = ? WHERE id = ?", (str(destino), arquivo_id))
         return arquivo_id
+
+
+def caminho_arquivo(conta_id: int, arquivo_id: int) -> str | None:
+    with banco() as conn:
+        row = conn.execute(
+            "SELECT caminho FROM arquivos WHERE id = ? AND conta_id = ?",
+            (arquivo_id, conta_id),
+        ).fetchone()
+        return row["caminho"] if row else None
 
 
 def ler_arquivo(conta_id: int, arquivo_id: int) -> tuple[bytes, str, str] | None:
@@ -370,6 +398,139 @@ def confirmar_lista_atual(conta_id: int) -> bool:
             return False
         conn.execute("UPDATE listas SET confirmada = 1 WHERE id = ?", (lista["id"],))
         return True
+
+
+def propor_lista(conta_id: int, itens: list[dict], alertas: list[dict]) -> int:
+    """Lista ainda sem confirmação, vinda do harness. `itens`: nome, concentracao e dados (ItemLido)."""
+    with banco() as conn:
+        versao_row = conn.execute(
+            "SELECT COALESCE(MAX(versao), 0) AS versao FROM listas WHERE conta_id = ?",
+            (conta_id,),
+        ).fetchone()
+        versao = int(versao_row["versao"]) + 1
+        cur = conn.execute(
+            "INSERT INTO listas (conta_id, versao, confirmada, criada_em) VALUES (?, ?, 0, ?)",
+            (conta_id, versao, agora()),
+        )
+        lista_id = int(cur.lastrowid)
+        _gravar_itens(conn, lista_id, itens)
+        for alerta in alertas:
+            conn.execute(
+                "INSERT INTO alertas (lista_id, texto, fonte) VALUES (?, ?, ?)",
+                (lista_id, alerta["texto"], alerta["fonte"]),
+            )
+        return versao
+
+
+def confirmar_lista(conta_id: int, itens: list[dict], pontos: list[str], confirmada_em: str) -> int:
+    """Grava a lista confirmada. Reaproveita a última proposta aberta, se houver, e mantém os alertas dela."""
+    with banco() as conn:
+        lista = conn.execute(
+            "SELECT id, versao, confirmada FROM listas WHERE conta_id = ? ORDER BY versao DESC LIMIT 1",
+            (conta_id,),
+        ).fetchone()
+        if lista is not None and not lista["confirmada"]:
+            lista_id, versao = int(lista["id"]), int(lista["versao"])
+            conn.execute("DELETE FROM itens WHERE lista_id = ?", (lista_id,))
+        else:
+            versao = (int(lista["versao"]) if lista else 0) + 1
+            cur = conn.execute(
+                "INSERT INTO listas (conta_id, versao, confirmada, criada_em) VALUES (?, ?, 0, ?)",
+                (conta_id, versao, agora()),
+            )
+            lista_id = int(cur.lastrowid)
+        _gravar_itens(conn, lista_id, itens)
+        conn.execute(
+            "UPDATE listas SET confirmada = 1, confirmada_em = ?, pontos_json = ? WHERE id = ?",
+            (confirmada_em, json.dumps(pontos, ensure_ascii=False), lista_id),
+        )
+        return versao
+
+
+def _gravar_itens(conn, lista_id: int, itens: list[dict]) -> None:
+    for item in itens:
+        conn.execute(
+            "INSERT INTO itens (lista_id, nome, concentracao, dados_json) VALUES (?, ?, ?, ?)",
+            (
+                lista_id,
+                item["nome"],
+                item["concentracao"],
+                json.dumps(item.get("dados", {}), ensure_ascii=False),
+            ),
+        )
+
+
+def listas_confirmadas(conta_id: int) -> list[dict]:
+    with banco() as conn:
+        listas = conn.execute(
+            """
+            SELECT id, versao, confirmada_em, pontos_json FROM listas
+            WHERE conta_id = ? AND confirmada = 1 ORDER BY versao
+            """,
+            (conta_id,),
+        ).fetchall()
+        saida = []
+        for lista in listas:
+            itens = conn.execute(
+                "SELECT dados_json FROM itens WHERE lista_id = ? ORDER BY id",
+                (lista["id"],),
+            ).fetchall()
+            saida.append(
+                {
+                    "versao": lista["versao"],
+                    "confirmada_em": lista["confirmada_em"],
+                    "pontos": json.loads(lista["pontos_json"] or "[]"),
+                    "itens": [json.loads(i["dados_json"] or "{}") for i in itens],
+                }
+            )
+        return saida
+
+
+def salvar_registro(conta_id: int, colecao: str, registro_id: str, dados: dict) -> None:
+    with banco() as conn:
+        conn.execute(
+            """
+            INSERT INTO harness_registros (id, conta_id, colecao, dados_json, criado_em)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET dados_json = excluded.dados_json
+            """,
+            (registro_id, conta_id, colecao, json.dumps(dados, ensure_ascii=False, default=str), agora()),
+        )
+
+
+def ler_registro(conta_id: int, registro_id: str) -> dict | None:
+    with banco() as conn:
+        row = conn.execute(
+            "SELECT dados_json FROM harness_registros WHERE id = ? AND conta_id = ?",
+            (registro_id, conta_id),
+        ).fetchone()
+        return json.loads(row["dados_json"]) if row else None
+
+
+def listar_registros(conta_id: int, colecao: str) -> list[dict]:
+    with banco() as conn:
+        rows = conn.execute(
+            "SELECT dados_json FROM harness_registros WHERE conta_id = ? AND colecao = ? ORDER BY rowid",
+            (conta_id, colecao),
+        ).fetchall()
+        return [json.loads(row["dados_json"]) for row in rows]
+
+
+def mensagem_extra(conta_id: int, mensagem_id: int) -> dict | None:
+    with banco() as conn:
+        row = conn.execute(
+            "SELECT extra_json FROM mensagens WHERE id = ? AND conta_id = ?",
+            (mensagem_id, conta_id),
+        ).fetchone()
+        return json.loads(row["extra_json"] or "{}") if row else None
+
+
+def definir_extra(conta_id: int, mensagem_id: int, extra: dict) -> None:
+    with banco() as conn:
+        conn.execute(
+            "UPDATE mensagens SET extra_json = ? WHERE id = ? AND conta_id = ?",
+            (json.dumps(extra, ensure_ascii=False), mensagem_id, conta_id),
+        )
 
 
 def criar_lembrete(conta_id: int, texto: str) -> dict:

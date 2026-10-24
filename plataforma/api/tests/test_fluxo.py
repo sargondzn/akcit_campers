@@ -2,6 +2,7 @@ import os
 import tempfile
 
 os.environ["SERIEMA_DADOS"] = tempfile.mkdtemp(prefix="seriema-teste-")
+os.environ["HARNESS_STUB"] = "1"
 
 from fastapi.testclient import TestClient
 

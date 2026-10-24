@@ -3,3 +3,6 @@ uvicorn
 python-multipart
 httpx
 pytest
+
+# Harness (C1): a API chama harness.processar_mensagem no mesmo processo.
+-r ../../harness/requirements.txt
