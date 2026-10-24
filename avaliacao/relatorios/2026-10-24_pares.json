@@ -1,0 +1,23 @@
+{
+  "conjunto": "pares",
+  "prioridade": "P0",
+  "data": "2026-10-24T13:31:07",
+  "commit": "30c4811",
+  "modelos": {
+    "modelo": "nenhum (checar_lista é determinístico)"
+  },
+  "gabarito": "casos (Git)",
+  "meta": "recall ≥ 90%",
+  "status": "✅",
+  "n": 40,
+  "n_real": 0,
+  "tempo_medio_s": 0.0,
+  "custo_medio_usd": 0.0,
+  "falharam": [],
+  "erros": [],
+  "acertos": 30,
+  "total": 30,
+  "valor": 1.0,
+  "negativos": 10,
+  "alertas_indevidos": 0
+}
