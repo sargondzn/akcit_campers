@@ -66,9 +66,10 @@ def test_tipo_de_receita(principio, tipo):
 
 def test_validade_acompanha_o_tipo():
     controle, simples = info_remedio("clonazepam"), info_remedio("losartana")
-    assert controle.validade_receita_dias == 30
-    assert simples.validade_receita_dias is None or simples.validade_receita_dias > 0
-    assert controle.validade_receita_dias is not None
+    assert controle.validade_receita_dias == 30      # Portaria SVS/MS 344/1998, art. 45
+    assert simples.validade_receita_dias == 180      # Farmácia Popular, Portaria GM/MS 12.091/2026, art. 29
+    assert "Portaria SVS/MS nº 344/1998" in controle.fonte
+    assert "12.091/2026" in simples.fonte
 
 
 @pytest.mark.parametrize("nome", ["paracetamol", "", "xyz", "hidroclorotiazida;losartana", "dipirona"])

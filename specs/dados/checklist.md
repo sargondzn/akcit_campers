@@ -22,7 +22,7 @@
 
 - [x] **P0** — `indicacoes.csv` para os ~20 remédios, gerada e conferida com LLM, com fonte (E8)
 - [x] **P0** — `farmacia_popular.csv` a partir da página oficial do programa, com a data (E4): elenco de 31/08/2026
-- [x] **P1** — `tipos_receita.csv` e a coluna `tipo_receita` em `remedios.csv` (E4): tipo derivado da tarja da CMED; **validades ainda não conferidas em fonte oficial** (ver `revisao-humana.md` §8)
+- [x] **P1** — `tipos_receita.csv` e a coluna `tipo_receita` em `remedios.csv` (E4): tipo derivado da tarja da CMED; validades conferidas em fonte oficial por subagente (simples 180 = Farmácia Popular, não prazo legal; ver `revisao-humana.md` §8)
 - [x] **P0** — `info_remedio` (C8) + testes
-- [ ] **P1** — Confirmar `validade_dias` de cada tipo de receita em fonte oficial (hoje: simples vazio, controle especial 30, antimicrobiano 10, de memória)
+- [ ] **P1** — Revisão humana das validades de receita: abrir a RDC 1.000/2025 e a portaria 12.091/2026 republicada no Diário Oficial
 - [ ] **P0** — B liga `texto_normalizado` e `nomes_conhecidos` de `dados` na ponte do harness (hoje ainda são stubs) e ajusta o artigo da frase "para que serve"
