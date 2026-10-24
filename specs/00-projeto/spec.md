@@ -1,6 +1,7 @@
 # Spec — 00-projeto
 
 > **Status:** 🟡 escrita em 23/10/2026 a partir das respostas da [`discussao.md`](discussao.md) (D0–D22). Aguarda a aprovação dos três (A, B e C).
+> **Aceites registrados:** C (Roberto), em 23/10/2026, da spec e dos contratos C1–C7 · A (Beatriz): pendente · B (Caio): pendente.
 > **Vale para todas as frentes.** Em caso de conflito, esta spec prevalece sobre a spec de uma frente. Os contratos (§5) só mudam com o acordo dos três; o escopo só muda com pedido do usuário (registrado em [`visao.md`](visao.md) §5).
 
 ---
