@@ -1,7 +1,8 @@
 # Spec — dados
 
 > **Dono:** Pessoa C (Roberto) · **Status:** 🟡 escrita em 23/10/2026 a partir de D7, D15.2, D15.4 e D16. Os padrões marcados com **(DA-Dn)** valem até resposta em contrário na [`discussao.md`](discussao.md).
-> Regras gerais e contratos (C2, C3, C4): [`00-projeto/spec.md`](../00-projeto/spec.md). Corte regional × final: [`escopo-por-fase.md`](../00-projeto/escopo-por-fase.md).
+> Regras gerais e contratos (C2, C3, C4, C8): [`00-projeto/spec.md`](../00-projeto/spec.md). Corte regional × final: [`escopo-por-fase.md`](../00-projeto/escopo-por-fase.md).
+> **Atualização de 24/10/2026** (pedido do usuário, escrita por B): modelos da OpenAI no lugar dos locais (D3) e funcionalidades E1, E2, E4 e E8 (D23). As partes novas estão marcadas com **(24/10)**. **C revisa** e ajusta os detalhes de implementação.
 
 ---
 
@@ -15,6 +16,7 @@
 | `checar_lista` | C3 | Mesmo princípio ativo em nomes diferentes + tabela curada (interações, duplicidade de classe, CBMPI) |
 | `detectar_alarme` | C4 | Sinal de alarme no texto → `ligue_192` |
 | `avaliar_gravidade` | C4 | Sintoma estruturado → conduta (192, 24h, observar) |
+| `info_remedio` **(24/10)** | C8 | Princípio ativo → para que serve (E8), Farmácia Popular (E4), tipo e validade da receita (E4) |
 
 **Final:** base de interações completa e licenciada, conversão de nomes PT → internacional em escala, CBMPI completo + Beers, RAG em bulas, efeito adverso × sintoma, revisão por profissional.
 
@@ -39,11 +41,15 @@ dados/
 │   ├── cbmpi.csv
 │   ├── sinais_alarme.csv
 │   ├── regras_gravidade.csv
+│   ├── indicacoes.csv           ← (24/10) para que serve
+│   ├── farmacia_popular.csv     ← (24/10)
+│   ├── tipos_receita.csv        ← (24/10) validade por tipo de receita
 │   └── LEIAME.md
 ├── texto.py                 ← normalização de texto (minúsculo, sem acento, sem pontuação extra)
 ├── normalizador.py          ← normalizar (C2)
 ├── farmacovigilante.py      ← checar_lista (C3)
 ├── gravidade.py             ← detectar_alarme e avaliar_gravidade (C4)
+├── info_remedio.py          ← info_remedio (C8, 24/10)
 ├── validar_tabelas.py       ← confere colunas, valores e referências entre tabelas
 └── testes/
 ```
@@ -59,6 +65,9 @@ dados/
 | `cbmpi.csv` | `principio_ativo`, `criterio`, `motivo` (frase simples), `fonte`, `conferencia` |
 | `sinais_alarme.csv` | `regra_id`, `padrao` (expressão regular sobre o texto normalizado), `descricao`, `fonte`, `conferencia` |
 | `regras_gravidade.csv` | `regra_id`, `ordem`, `condicao` (sintomas e sinais), `nivel` (ligue_192/atendimento_24h/observar), `motivo`, `fonte`, `conferencia` |
+| `indicacoes.csv` **(24/10)** | `principio_ativo`, `para_que_serve` (frase simples de uso comum, sem verbo no imperativo: "controlar a pressão alta"), `fonte` (bula), `conferencia` |
+| `farmacia_popular.csv` **(24/10)** | `principio_ativo`, `concentracao`, `indicacao_programa`, `gratuito` (sim/não), `documentos` (separados por `;`), `fonte` (página oficial do programa + data da consulta), `conferencia` |
+| `tipos_receita.csv` **(24/10)** | `tipo_receita` (simples/controle_especial/antimicrobiano), `validade_dias`, `fonte`, `conferencia`; e `remedios.csv` ganha a coluna `tipo_receita` |
 
 Regras: todo `principio_ativo` citado nas tabelas clínicas existe em `remedios.csv`; princípios em minúsculo e sem acento; pares de `interacoes.csv` em ordem alfabética, sem repetição. `validar_tabelas.py` falha se alguma regra for quebrada.
 
@@ -104,9 +113,17 @@ C pode acrescentar sinais, sempre com `fonte` e `conferencia`.
 - Depois percorre `regras_gravidade.csv` pela `ordem`; a primeira regra que casa define a conduta.
 - Nenhuma regra casou → `observar` com `regra_id = "padrao_observar"`.
 
+## 7a. `info_remedio` (C8, 24/10)
+
+1. Busca o `principio_ativo` em `indicacoes.csv`, `farmacia_popular.csv` e, pelo `tipo_receita` de `remedios.csv`, em `tipos_receita.csv`.
+2. Monta o `InfoRemedio` (00-projeto/spec §5.1). Sem linha em `indicacoes.csv` → devolve `None` (o harness diz "ainda não tenho essa informação").
+3. `farmacia_popular = True` só se houver linha com `gratuito = sim` para o princípio (e a concentração, se a tabela tiver).
+4. A lista do Farmácia Popular e as regras de receita mudam com o tempo: a data da consulta à fonte oficial vai na coluna `fonte` e em `LEIAME.md`.
+
 ## 8. Testes
 
 - `normalizar`: cada um dos ~20 remédios por nome comercial, por princípio, com erro de digitação leve e com concentração; nome desconhecido.
 - `checar_lista`: pelo menos um caso de cada tipo de alerta e uma lista sem alertas.
 - `detectar_alarme`: todas as variações da tabela do §7.1 e frases sem alarme.
-- `validar_tabelas.py` roda junto com os testes.
+- `info_remedio`: os ~20 remédios têm `para_que_serve`; um com e um sem Farmácia Popular; princípio desconhecido → `None`.
+- `validar_tabelas.py` roda junto com os testes (inclusive as tabelas novas).
