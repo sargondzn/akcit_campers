@@ -32,7 +32,11 @@ losartana, hidroclorotiazida, anlodipino, enalapril, atenolol, furosemida, espir
 
 - **Fontes clínicas não abertas.** O revisor não conseguiu abrir o DDInter nem as bulas da Anvisa. **Antes da demo, abra a bula de cada um dos 4 pares e cite só o que viu:** varfarina + AAS, varfarina + diclofenaco, losartana + espironolactona, sinvastatina + anlodipino. A bula do Marevan não foi confirmada para o diclofenaco, a do Aldactone para a losartana, nem a do Zocor brasileiro para o anlodipino.
 - **Mesma família de modelo** gerou e conferiu: o erro correlacionado não some.
-- **Dependência do extrator.** `s:` nas regras de gravidade casa por substring nos `sintomas` e na `descricao`. Se `harness.diario.estruturar` não devolver termos canônicos ("queda", "vomito"), casos como "ela caiu" só são pegos pelas regexes de alarme. Combinar o vocabulário com Caio.
+- **Dependência do Diário.** As regras de gravidade usam o vocabulário (`vocabulario.csv`): casam o termo canônico ou um sinônimo nos `sintomas` e na `descricao`. Mesmo assim, termos que o Diário (`harness.diario.estruturar`) invente fora do vocabulário podem não casar. Ver DA-D4.
 - **Negação não é tratada** (DA-D2, conservador): "não teve dor no peito" mostra o cartão 192. Vale também para "sem febre", "sem tontura" nas regras de gravidade.
 - **Não cobre ainda:** o "triplo golpe" (IECA/BRA + diurético + anti-inflamatório), interações entre três remédios, CBMPI condicional a dose/duração (AAS e omeprazol ficaram de fora porque o fluxo não captura dose e duração), e diclofenaco tópico junto de AINE oral.
 - `duplicidade_principio` (mesmo princípio em 2 itens) vem de regra fixa, sem tabela clínica. O contrato só permite `llm` ou `profissional` na `conferencia`, e usei `llm`.
+
+## `vocabulario.csv` (feito com apoio de LLM)
+
+Fonte do vocabulário que o Diário deve usar (DA-D4): 51 linhas (41 sintomas, 8 sinais, 3 intensidades), cada uma com definição, sinônimos, exclusões, exemplo e tratamento. Gerado por Claude Sonnet 5.5 a partir dos termos das regras, **sem segunda leitura de LLM nem de profissional**; as regras de gravidade foram reescritas para usar só nomes canônicos dele, e entrou a regra `grav_dor_cabeca_subita` (192) e `grav_pressao_baixa` (24h), ambas sugeridas por revisões de LLM e pendentes de revisão clínica. Os sinônimos usam `*` (começo de palavra) e `%` (até 5 palavras no meio).

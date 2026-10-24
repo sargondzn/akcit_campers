@@ -7,7 +7,7 @@ import re
 import sys
 from pathlib import Path
 
-from dados.gravidade import interpretar_condicao
+from dados.gravidade import _padrao, interpretar_condicao
 from dados.texto import normalizar_texto
 
 TABELAS = Path(__file__).resolve().parent / "tabelas"
@@ -19,7 +19,10 @@ COLUNAS = {
     "cbmpi.csv": ["principio_ativo", "criterio", "motivo", "fonte", "conferencia"],
     "sinais_alarme.csv": ["regra_id", "padrao", "descricao", "fonte", "conferencia"],
     "regras_gravidade.csv": ["regra_id", "ordem", "condicao", "nivel", "motivo", "fonte", "conferencia"],
+    "vocabulario.csv": ["tipo", "termo", "definicao", "sinonimos", "exclusoes", "exemplo", "tratamento", "fonte", "conferencia"],
 }
+TIPOS_VOCABULARIO = {"sintoma", "sinal", "intensidade"}
+TRATAMENTOS = {"regra", "alarme", "regra+alarme", "sem_regra"}
 CONFERENCIA = {"llm", "profissional"}
 
 
@@ -102,13 +105,77 @@ def validar() -> list[str]:
             erros.append(f"regras_gravidade.csv: regra_id repetido: {l['regra_id']}")
         ids.add(l["regra_id"])
 
+    erros += _validar_vocabulario(t["vocabulario.csv"], t["regras_gravidade.csv"])
+
     # fonte e conferencia preenchidas em toda linha clínica
-    for nome in ("interacoes.csv", "classes.csv", "cbmpi.csv", "sinais_alarme.csv", "regras_gravidade.csv"):
+    for nome in ("interacoes.csv", "classes.csv", "cbmpi.csv", "sinais_alarme.csv", "regras_gravidade.csv", "vocabulario.csv"):
         for i, l in enumerate(t[nome], start=2):
             if not l["fonte"].strip():
                 erros.append(f"{nome} linha {i}: fonte vazia")
             if l["conferencia"] not in CONFERENCIA:
                 erros.append(f"{nome} linha {i}: conferencia {l['conferencia']!r} (esperado llm ou profissional)")
+    return erros
+
+
+def _validar_vocabulario(vocab, regras) -> list[str]:
+    """O vocabulário é a fonte; as regras só podem usar termos dele (DA-D4)."""
+    erros: list[str] = []
+    chaves = set()
+    dono: dict[tuple[str, str], str] = {}  # (tipo, forma de falar) -> termo
+    for l in vocab:
+        ctx = f"vocabulario.csv: {l['tipo']} {l['termo']!r}"
+        if l["tipo"] not in TIPOS_VOCABULARIO:
+            erros.append(f"{ctx}: tipo inválido")
+        if l["tratamento"] not in TRATAMENTOS:
+            erros.append(f"{ctx}: tratamento inválido {l['tratamento']!r}")
+        if not re.fullmatch(r"[a-z0-9_]+", l["termo"]):
+            erros.append(f"{ctx}: termo deve ser minúsculo, sem acento, com _ no lugar de espaço")
+        if (l["tipo"], l["termo"]) in chaves:
+            erros.append(f"{ctx}: termo repetido")
+        chaves.add((l["tipo"], l["termo"]))
+        for campo in ("definicao", "exemplo"):
+            if not l[campo].strip():
+                erros.append(f"{ctx}: {campo} vazio")
+        formas = [l["termo"].replace("_", " ")] + [x for x in l["sinonimos"].split("|") if x]
+        for forma in formas:
+            base = forma.rstrip("*")
+            if any(parte != normalizar_texto(parte) for parte in base.split(" % ")):
+                erros.append(f"{ctx}: forma {forma!r} fora do formato normalizado (minúsculo, sem acento nem pontuação)")
+            outro = dono.get((l["tipo"], base))  # forma exata repetida em dois termos
+            if outro is not None and outro != l["termo"]:
+                erros.append(f"{ctx}: a forma {forma!r} também é de {outro!r} (ambígua)")
+            dono[(l["tipo"], base)] = l["termo"]
+        for exc in [x for x in l["exclusoes"].split("|") if x]:
+            if exc.rstrip("*") != normalizar_texto(exc.rstrip("*")):
+                erros.append(f"{ctx}: exclusão {exc!r} fora do formato normalizado")
+        if not _padrao(formas).search(normalizar_texto(l["exemplo"])):
+            erros.append(f"{ctx}: o exemplo {l['exemplo']!r} não contém o termo nem um sinônimo")
+
+    usos: dict[tuple[str, str], int] = {}
+    for r in regras:
+        try:
+            alternativas = interpretar_condicao(r["condicao"])
+        except ValueError:
+            continue  # já reportado em regras_gravidade.csv
+        for alt in alternativas:
+            for tipo, valor in alt:
+                if tipo == "int":
+                    if ("intensidade", valor) not in chaves:
+                        erros.append(f"regras_gravidade.csv: {r['regra_id']} usa int:{valor}, que não está no vocabulário")
+                    continue
+                chave = ("sintoma" if tipo == "s" else "sinal", valor)
+                if chave not in chaves:
+                    erros.append(f"regras_gravidade.csv: {r['regra_id']} usa {tipo}:{valor}, que não está no vocabulário")
+                usos[chave] = usos.get(chave, 0) + 1
+    for l in vocab:
+        if l["tipo"] == "intensidade":
+            continue
+        chave = (l["tipo"], l["termo"])
+        com_regra = l["tratamento"] in ("regra", "regra+alarme")
+        if com_regra and chave not in usos:
+            erros.append(f"vocabulario.csv: {l['tipo']} {l['termo']!r} está marcado '{l['tratamento']}' e nenhuma regra o usa")
+        if not com_regra and chave in usos:
+            erros.append(f"vocabulario.csv: {l['tipo']} {l['termo']!r} está marcado '{l['tratamento']}' mas uma regra o usa")
     return erros
 
 

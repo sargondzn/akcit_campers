@@ -60,3 +60,21 @@ Conferir se o que `harness.diario.estruturar` (Caio) devolve bate com `specs/dad
 ## Como marcar como feito
 
 Para cada linha revisada: troque `conferencia` para `profissional`, ajuste `fonte` se mudou, e acrescente aqui `Revisado por <nome>, <data>`.
+
+## 7. Vocabulário do Diário e E2E de relatos (DA-D4, 24/10/2026)
+
+- **`vocabulario.csv`** (51 linhas) e **sinônimos, exclusões e pistas de intensidade** são rascunho de LLM. Revisar com quem conhece a fala das cuidadoras: sinônimos largos demais viram supertriagem ("caiu" aparece em "caiu a energia", tratado por exclusões); estreitos demais viram subtriagem.
+- **Regras novas** (sugestões de LLM, sem revisão clínica): `grav_dor_cabeca_subita` (dor de cabeça fortíssima de repente → 192) e `grav_pressao_baixa` (pressão baixa com tontura ou fraqueza → 24h).
+- **Alarmes ampliados depois do E2E:** vômito com sangue com palavras no meio ("vomitou um tanto de sangue") e engasgo com obstrução ("não entra nem sai ar") passaram a disparar o 192.
+- **Gabarito `avaliacao/exemplos/relatos_e2e/gabarito.jsonl`:** 54 relatos escritos e rotulados por um Sonnet que viu só o vocabulário e os níveis (`nivel_esperado` é julgamento dele). Quatro divergências ficaram documentadas no próprio arquivo (campo `observacao`): `e2e_034` (queda com dor no quadril que ainda anda: nossa regra é 192), `e2e_035` (confusão há um dia: o alarme conservador dispara), `e2e_036` (sangue vivo nas fezes: regex larga) e `e2e_046` (inchaço leve de sempre: toda queixa de inchaço é 24h). **Um clínico deve decidir quem está certo.**
+
+### Números do E2E (54 relatos)
+
+| Medição | Texto cru (sem Diário) | Oráculo (Diário perfeito) |
+|---|---|---|
+| **1ª, antes de qualquer correção** | 42/54 (78%), 8 subtriagens, 4 supertriagens | 48/54 (89%), 1 subtriagem, 5 supertriagens |
+| Depois das correções | 49/54 (91%), 2 subtriagens, 3 supertriagens | 50/54 (93%), 0 subtriagens, 4 supertriagens |
+
+A 1ª medição é a honesta. **A segunda é otimista**: as correções foram feitas olhando estes mesmos 54 casos, então o gabarito virou conjunto de desenvolvimento. Subtriagens que restam no texto cru: `e2e_029` (açúcar "58") e `e2e_033` (pressão "80 por 50"), que dependem de número que só o Diário transforma em termo. Em texto cru, **todos os 18 relatos de emergência do gabarito viram 192**, mas isso também foi ajustado olhando o gabarito.
+- **Diário real:** `test_diario_real_do_harness` não pôde rodar (sem `OPENAI_API_KEY` neste ambiente). É a medição que falta.
+- Para uma estimativa honesta do E2E, gerar uma nova rodada cega (como as de `relatos_cegos`) e medir sem ajustar.
