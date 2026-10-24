@@ -13,6 +13,7 @@ python-dotenv==1.2.4
 # Percepção: PDF (spec §6.1) e escuta, STT local (spec §7)
 pypdf==6.21.2
 pypdfium2==5.14.0
+pillow==13.0.0
 faster-whisper==1.2.1
 
 # Fala, TTS local (spec §11)
