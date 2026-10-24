@@ -54,12 +54,12 @@
 
 ---
 
-## DA-D4 — Vocabulário do extrator (dados ↔ harness) 🟡
+## DA-D4 — Vocabulário do Diário (dados ↔ harness) 🟡
 
-**Contexto:** `avaliar_gravidade` (C) decide a conduta olhando os termos de `SintomaEstruturado.sintomas` e as chaves de `sinais`, mas quem preenche esses campos é `harness.diario.estruturar` (B). Se o extrator devolver "caiu no banheiro" em vez de `queda`, a regra de 24 horas não casa. As regexes de alarme (192) rodam sobre o texto todo e não dependem disso, então o risco é de subtriagem nos casos de 24 horas, não nos 4 sinais de alarme.
+**Contexto:** `avaliar_gravidade` (C) decide a conduta olhando os termos de `SintomaEstruturado.sintomas` e as chaves de `sinais`, mas quem preenche esses campos é o **Diário** (`harness.diario.estruturar`, de B), um subagente já decidido na spec do harness (§2.2 e §9) que organiza o relato da cuidadora; ele **não** decide alarme nem conduta. Se o Diário devolver "caiu no banheiro" em vez de `queda`, a regra de 24 horas poderia não casar. As regexes de alarme (192) rodam sobre o texto todo e não dependem disso. (Não confundir com a AV-D4, que trata de uma camada de LLM para detectar alarme e ainda não foi decidida.)
 
-**Proposta de C:** o extrator de B usa exatamente o vocabulário de [`vocabulario-diario.md`](vocabulario-diario.md), gerado de `dados/tabelas/regras_gravidade.csv` por `python -m dados.vocabulario`, de preferência como vocabulário fechado no prompt.
-
-**O que falta (não está resolvido):** conferir se os dois lados batem. Quando B integrar `diario.estruturar`, rodar o conjunto `relatos` pelo caminho completo (texto → `diario.estruturar` → `avaliar_gravidade`) e comparar a conduta com a obtida de `SintomaEstruturado` montado à mão. Termos que o extrator inventar entram na tabela (se forem corretos) ou viram instrução no prompt de B.
-
-**Resposta:** aguardando B (Caio). Sem resposta, o regional segue com as regexes de alarme como rede de segurança.
+**Resposta (24/10/2026):** o vocabulário de [`vocabulario-diario.md`](vocabulario-diario.md) **prevalece enquanto o Diário real não existe ou não o segue**; B adapta o Diário a ele.
+- A fonte agora é `dados/tabelas/vocabulario.csv` (nome canônico, definição, sinônimos, exclusões, exemplo e tratamento de cada termo); o documento é gerado dele por `python -m dados.vocabulario`, e `--json` gera a lista fechada para o prompt.
+- As regras de gravidade só podem usar termos do vocabulário (`validar_tabelas.py` confere, e há testes de alcance de cada regra).
+- Mesmo que o Diário não use o nome canônico, a regra casa os **sinônimos** na `descricao` (com exclusões e negação), então o vocabulário também protege contra um Diário que escreve livre.
+- O que fica **aberto**: ligar o Diário real. O prompt atual (`harness/prompts/diario.md`) ainda tem exemplos próprios ("tontura", "queda", "febre_alta") e não cita este vocabulário; o bloco para colar nele está no documento. Quando B ligar o Diário à OpenAI, rodar `pytest dados/testes/test_relatos_e2e.py` com `OPENAI_API_KEY`: ele compara a conduta de ponta a ponta e lista os termos fora do vocabulário.

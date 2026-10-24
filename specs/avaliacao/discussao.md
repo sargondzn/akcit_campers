@@ -55,14 +55,14 @@
 
 **Opções para a decisão 2 (e o pitch):**
 - (a) **Só regras fixas, número honesto no pitch.** Regional. Simples, testável, sem alucinação. Recall baixo com fala livre.
-- (b) **Camada com LLM que só eleva a conduta.** O LLM lê o relato; se ele achar alarme, o cartão 192 aparece mesmo que a regex não tenha achado. Ele **nunca** pode tirar um alarme que a regra fixa achou ("se qualquer um achar, alerta"). Muda a regra da visão §2.3 ("sinal de alarme não passa pelo LLM"), precisa do acordo dos três. Custos: mais falsos alarmes, latência, e o modelo local pequeno em CPU pode ser fraco para isso; precisa ser medido com a mesma metodologia cega.
+- (b) **Camada com LLM que só eleva a conduta.** O LLM lê o relato; se ele achar alarme, o cartão 192 aparece mesmo que a regex não tenha achado. Ele **nunca** pode tirar um alarme que a regra fixa achou ("se qualquer um achar, alerta"). Muda a regra da visão §2.3 ("sinal de alarme não passa pelo LLM"), precisa do acordo dos três. Custos: mais falsos alarmes, latência, o custo e a latência de uma chamada à OpenAI (o harness passou a usar a API em 24/10) e a privacidade (o relato sai da máquina); precisa ser medido com a mesma metodologia cega.
 - (c) **Usar fala real das cuidadoras (entrevistas) para melhorar e para medir.** Não substitui o (b): complementa. Dois usos: (1) alimentar a lista de jeitos de falar que as regras e o prompt do LLM precisam cobrir; (2) formar um conjunto de teste de fala real, **separado** do que foi usado no ajuste, que dá um número que vale. Exemplo: da entrevista sai "ela ficou toda mole e a boca entortou"; essa frase entra no teste, e uma parte fica guardada sem ninguém mexer, só para medir. Hoje só há 1 entrevista (meta: 5 a 10).
 
 **Recomendação:** (a) no regional, com o número honesto; (b) mais (c) na final.
 
 **Perguntas para aprofundar:**
 1. O (b) roda no `diario.estruturar` que já existe (sem custo de chamada extra) ou é uma chamada separada?
-2. Um modelo local pequeno em CPU detecta alarme bem? Medir com as rodadas cegas e depois com falas reais.
+2. Qual modelo da OpenAI (a spec do harness trocou o modelo local pela API em 24/10, HA-D2 ainda aberta) detecta alarme bem, e a que custo, latência e privacidade (o relato da cuidadora vai para a OpenAI, o que o termo de consentimento já precisa cobrir)? Medir com as rodadas cegas e depois com falas reais. O Diário (que já existe e já lê o relato) poderia fazer isso na mesma chamada?
 3. Qual taxa de falso alarme a cuidadora tolera antes de ignorar o cartão (efeito "lobo")?
 4. Como pedir a mudança da regra da visão §2.3 aos três (A, B e C)?
 5. O que medir e mostrar no pitch do regional, enquanto o (b) não existe?
