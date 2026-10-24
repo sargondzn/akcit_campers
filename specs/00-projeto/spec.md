@@ -288,7 +288,7 @@ class Resumo:
 class Repositorio(Protocol):
     # leitura (Contexto)
     def obter_idoso(self, idoso_id) -> dict: ...                     # apelido
-    def obter_lista_atual(self, idoso_id) -> ListaVersao: ...        # versao, confirmada_em, itens: list[ItemLido]
+    def obter_lista_atual(self, idoso_id) -> ListaVersao: ...        # versao, confirmada_em, itens: list[ItemLido], pontos_para_conferir (24/10)
     def obter_cronograma(self, idoso_id) -> list[Horario]: ...       # item_id, horario, ativo
     def obter_doses(self, idoso_id, desde) -> list[Dose]: ...        # horario_id, previsto, status: tomada|nao_tomada|sem_resposta
     def obter_diario(self, idoso_id, desde) -> list[RegistroDiario]: ...
@@ -303,7 +303,8 @@ class Repositorio(Protocol):
                                                                      # (24/10) escopo_receita, consulta_para_confirmar, relato_consulta, quantidade_por_dose
     def atualizar_pendencia(self, pendencia_id, dados) -> None: ...  # (24/10) definir_escopo e decidir_item mudam a proposta guardada
     def resolver_pendencia(self, pendencia_id, resultado) -> None: ...
-    def salvar_lista_confirmada(self, idoso_id, itens) -> int: ...   # cria nova versão e o cronograma; devolve a versão
+    def salvar_lista_confirmada(self, idoso_id, itens, pontos_para_conferir=None) -> int: ...   # cria nova versão e o cronograma; devolve a versão
+                                                                     # (24/10) pontos_para_conferir: itens "não sei" da conciliação; voltam em ListaVersao
     def alterar_cronograma(self, idoso_id, mudancas) -> None: ...
     def registrar_dose(self, horario_id, status, quando) -> None: ...
     def registrar_sintoma(self, idoso_id, sintoma, conduta) -> str: ...
